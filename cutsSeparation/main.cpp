@@ -24,6 +24,22 @@ extern "C"
 
 */
 
+int* calculateViolation(Cut_gpu *h_cut){
+    int i, j, el;
+    int *vViolation = (int*)malloc(sizeof(int)*h_cut->numberConstrains);
+    for(i=0;i<h_cut->numberConstrains;i++){
+        vViolation[i] = 0;
+        for(j = h_cut->ElementsConstraints[i];j<h_cut->ElementsConstraints[i+1];j++){
+            el = h_cut->Elements[j];
+            vViolation[i] += h_cut->Coefficients[j]*h_cut->xAsterisc[el];
+        }
+        vViolation[i] = h_cut->rightSide[i] - vViolation[i];
+        printf("Violation: %d\n", vViolation[i]);
+    }
+    return vViolation;
+
+
+}
 
 int main(int argc, const char *argv[])
 {
@@ -43,8 +59,8 @@ int main(int argc, const char *argv[])
     LinearProgram *lp = lp_create();
     lp_read(lp,name);
     Cut_gpu *h_cut = fillStructPerLP(precision, lp);
-    int *vViolation = (int*)malloc(sizeof(int)*h_cut->numberConstrains);
-
+    int *vViolation = calculateViolation(h_cut);
+    getchar();
     int *vAux = (int*)malloc(sizeof(int)*szGroup1);
     int *idxOriginal;
     int valided;
