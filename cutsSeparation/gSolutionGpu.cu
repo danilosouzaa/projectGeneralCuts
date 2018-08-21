@@ -476,7 +476,9 @@ __global__ void runGPUZerohHalf(Cut_gpu *d_cut, int *d_solution, int nThread,int
     int best_violation = 0;
     int best_number = -1;
     int rhs,el, aux;
-
+    if(nFinal>=powf(2,sizeGroup)){
+        nFinal = powf(2,sizeGroup);
+    }
     for(ite = nInitial; ite <= nFinal; ite++)
     {
         DecimalToBinary(ite,binaryTest,sizeGroup);
