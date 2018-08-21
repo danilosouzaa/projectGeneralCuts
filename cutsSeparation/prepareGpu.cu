@@ -57,7 +57,7 @@ Cut_gpu* zeroHalf_runGPU(Cut_gpu *h_cut, int sizeGroup, int precision, int nThre
     if(deviceCuda>0){
         nRuns = pow(2,sizeGroup);
         nRunsPerThread = nRuns/(nBlocks*nThreads);
-        printf("nRuns: %d nThreads: %d nBlocks: %d nRunsPerThread: %d\n", nRuns, nThreads, nBlocks, nRunsPerThread );
+        printf("nRuns: %d nThreads: %d nBlocks: %d nRunsPerThread: %d numberContraints: %d, numberVariables:%d \n", nRuns, nThreads, nBlocks, nRunsPerThread, h_cut->numberContraints, h_cut->numberVariables );
         size_t size_cut = sizeof(Cut_gpu) +
                           sizeof(TCoefficients)*(h_cut->cont) +
                           sizeof(TElements)*(h_cut->cont) +
