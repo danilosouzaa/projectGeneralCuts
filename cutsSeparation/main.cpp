@@ -18,7 +18,8 @@ extern "C"
 1: Name Instance
 2: Precision of decimal
 3: Group Size initial
-4: Number of max denominator phase 1
+4: Number of max denominator phase 2
+
 
 
 */

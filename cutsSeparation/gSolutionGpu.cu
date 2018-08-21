@@ -464,7 +464,7 @@ __global__ void runGPUZerohHalf(Cut_gpu *d_cut, int *d_solution, int nThread,int
     if(threadIdx.x == 0)
     {
         nRunsPerThreads = (powf(2,sizeGroup))/(nBlock*nThread);
-        nRunsPerThreads++;
+        //nRunsPerThreads++;
         //printf("t: %d\n",d_cut->numberConstrains);
         //printf("teste: %d \n",binaryTest[1]);
 //            printf("Entrou no block: %d %d\n",blockIdx.x, d_solution[threadIdx.x]);
