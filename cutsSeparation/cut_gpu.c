@@ -130,7 +130,7 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
         //getchar();
     }
     //getchar();
-   // lp_row(lp,0,idx,coef);
+    // lp_row(lp,0,idx,coef);
     int aux = 0;
     h_cut->ElementsConstraints[0] = 0;
     for(i=0; i<numberConstrains; i++)
@@ -141,7 +141,7 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
         {
             if(coef[j]!=0.0)
             {
-              //  printf("Coef: %f idx: %d \t ", coef[j],idx[j]);
+                //  printf("Coef: %f idx: %d \t ", coef[j],idx[j]);
                 h_cut->Coefficients[aux] = coef[j];
                 h_cut->Elements[aux] = idx[j];
                 aux++;
@@ -162,53 +162,79 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
     return h_cut;
 }
 
-Cut_gpu *CreateGroupForVectorNumberConstraints(Cut_gpu *h_cut, int *vectorConstraints, int szConstraints, int *idxOriginal){
-        int cont = 0, aux = 0;
-        int i, j, el, constraint;
-        int *vAux = (int*)malloc(sizeof(int)*h_cut->numberVariables);
-        memset(vAux,0,sizeof(int)*h_cut->numberVariables);
-        for(i=0;i<szConstraints;i++){
-            constraint = vectorConstraints[i];
-            for(j=h_cut->ElementsConstraints[constraint];j<h_cut->ElementsConstraints[constraint+1];j++){
-                el = h_cut->Elements[j];
-                if(h_cut->xAsterisc[el]!=0){
-                    cont++;
-                    vAux[el] = 1;
-                }
+int returnPos(int *v,int n, int x)
+{
+    int e, m, d;                              // 1
+    e = 0;
+    d = n-1;                           // 2
+    while (e <= d)                            // 3
+    {
+        m = (e + d)/2;                         // 4
+        if (v[m] == x) return m;               // 5
+        if (v[m] < x) e = m + 1;               // 6
+        else d = m - 1;                        // 7
+    }                                         // 8
+    return -1;                                // 9
+}
+
+Cut_gpu *CreateGroupForVectorNumberConstraints(Cut_gpu *h_cut, int *vectorConstraints, int szConstraints, int *idxOriginal)
+{
+    int cont = 0, aux = 0;
+    int i, j, el, constraint;
+    int *vAux = (int*)malloc(sizeof(int)*h_cut->numberVariables);
+    memset(vAux,0,sizeof(int)*h_cut->numberVariables);
+    for(i=0; i<szConstraints; i++)
+    {
+        constraint = vectorConstraints[i];
+        for(j=h_cut->ElementsConstraints[constraint]; j<h_cut->ElementsConstraints[constraint+1]; j++)
+        {
+            el = h_cut->Elements[j];
+            if(h_cut->xAsterisc[el]!=0)
+            {
+                cont++;
+                vAux[el] = 1;
             }
         }
-        for(i=0;i<h_cut->numberVariables;i++){
-            if(vAux[i]==1){
-                aux++;
+    }
+    for(i=0; i<h_cut->numberVariables; i++)
+    {
+        if(vAux[i]==1)
+        {
+            aux++;
+        }
+    }
+    idxOriginal = (int*)malloc(sizeof(int)*aux);
+    Cut_gpu *h_cut_group = AllocationStructCut(cont,szConstraints,aux);
+    aux = 0;
+    for(i=0; i<h_cut->numberConstrains; i++)
+    {
+        if(vAux[i]==1)
+        {
+            idxOriginal[aux] = i;
+            h_cut_group->xAsterisc[aux] = h_cut->xAsterisc[i];
+            aux++;
+        }
+    }
+    cont = 0;
+    h_cut_group->ElementsConstraints[0] = 0;
+    for(i=0; i<szConstraints; i++)
+    {
+        constraint = vectorConstraints[i];
+        for(j=h_cut->ElementsConstraints[constraint]; j<h_cut->ElementsConstraints[constraint+1]; j++)
+        {
+            el = h_cut->Elements[j];
+            if(vAux[el]==1)
+            {
+                h_cut_group->Coefficients[cont] = h_cut->Coefficients[j];
+                h_cut_group->Elements[cont] = returnPos(idxOriginal,aux,el);//h_cut->Elements[j];
+                cont++;
             }
         }
-        idxOriginal = (int*)malloc(sizeof(int)*aux);
-        Cut_gpu *h_cut_group = AllocationStructCut(cont,szConstraints,aux);
-        aux = 0;
-        for(i=0;i<h_cut->numberConstrains;i++){
-            if(vAux[i]==1){
-                idxOriginal[aux] = i;
-                h_cut_group->xAsterisc[aux] = h_cut->xAsterisc[i];
-                aux++;
-            }
-        }
-        cont = 0;
-        h_cut_group->ElementsConstraints[0] = 0;
-        for(i=0;i<szConstraints;i++){
-            constraint = vectorConstraints[i];
-            for(j=h_cut->ElementsConstraints[constraint];j<h_cut->ElementsConstraints[constraint+1];j++){
-                el = h_cut->Elements[j];
-                if(vAux[el]==1){
-                    h_cut_group->Coefficients[cont] = h_cut->Coefficients[j];
-                    h_cut_group->Elements[cont] = h_cut->Elements[j];
-                    cont++;
-                }
-            }
-            h_cut_group->rightSide[i] = h_cut->rightSide[constraint];
-            h_cut_group->ElementsConstraints[i+1] = cont;
-            h_cut_group->typeConstraints[i] = RES_RR; //Só para testes.
-        }
-        return h_cut_group;
+        h_cut_group->rightSide[i] = h_cut->rightSide[constraint];
+        h_cut_group->ElementsConstraints[i+1] = cont;
+        h_cut_group->typeConstraints[i] = RES_RR; //Só para testes.
+    }
+    return h_cut_group;
 }
 
 void setParameters_ccg(parameters_ccg *parCCG, int mode)
