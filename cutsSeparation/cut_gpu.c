@@ -259,3 +259,24 @@ void setParameters_ccg(parameters_ccg *parCCG, int mode)
 
 }
 
+int generateVetorSec(Cut_gpu *h_cut, int *vAux, int sz){
+    int el, cont = 0,i=0,j=0;
+    while(cont<sz){
+        for(i = h_cut->ElementsConstraints[j];i<h_cut->ElementsConstraints[j+1];i++){
+            el = h_cut->Elements[i];
+            if((h_cut->Coefficients[i]!=0)&&(h_cut->xAsterisc[el]!=0)){
+               vAux[cont] = j;
+               cont++;
+               break;
+            }
+
+        }
+        j++;
+        if(j==h_cut->numberConstrains){
+            printf("Number Constraints invalided!");
+            return -1;
+        }
+    }
+    return 0;
+}
+

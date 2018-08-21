@@ -23,26 +23,7 @@ extern "C"
 
 
 */
-int generateVetorSec(Cut_gpu *h_cut, int *vAux, int sz){
-    int el, cont = 0,i=0,j=0;
-    while(cont<sz){
-        for(i = h_cut->ElementsConstraints[j];i<h_cut->ElementsConstraints[j+1];i++){
-            el = h_cut->Elements[i];
-            if((h_cut->Coefficients[i]!=0)&&(h_cut->xAsterisc[el]!=0)){
-               vAux[cont] = j;
-               cont++;
-               break;
-            }
 
-        }
-        j++;
-        if(j==h_cut->numberConstrains){
-            printf("Number Constraints invalided!");
-            return -1;
-        }
-    }
-    return 0;
-}
 
 int main(int argc, const char *argv[])
 {
@@ -55,12 +36,15 @@ int main(int argc, const char *argv[])
     int szGroup1 = atoi(argv[3]);
     int maxDenomitor =atoi(argv[4]);
     int i;
+
     printf("%d %d\n",precision,szGroup1);
     getchar();
     strcat(name,argv[1]);
     LinearProgram *lp = lp_create();
     lp_read(lp,name);
     Cut_gpu *h_cut = fillStructPerLP(precision, lp);
+    int *vViolation = (int*)malloc(sizeof(int)*h_cut->numberConstrains);
+
     int *vAux = (int*)malloc(sizeof(int)*szGroup1);
     int *idxOriginal;
     int valided;
@@ -78,6 +62,7 @@ int main(int argc, const char *argv[])
     int nBlock = 2, nThread = 512;
     h_cut_group = initial_runGPU(h_cut_group,precision,nBlock,nThread,szGroup1);
     h_cut_group = zeroHalf_runGPU(h_cut_group,szGroup1,precision,nThread,nBlock);
+
     printf("numero inicial: %d, depois : %d\n",cutIni, h_cut_group->numberConstrains) ;
    //s h_cut_group =
     //getchar();
@@ -90,6 +75,8 @@ int main(int argc, const char *argv[])
     free(h_cut);
     lp_free( &lp );
     lp_close_env();
-
+    free(idxOriginal);
+    free(vAux);
+    free(vViolation);
     return 0;
 }

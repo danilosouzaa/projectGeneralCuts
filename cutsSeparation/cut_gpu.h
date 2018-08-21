@@ -86,6 +86,8 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp);
 
 void setParameters_ccg(parameters_ccg *parCCG, int mode);
 
+int generateVetorSec(Cut_gpu *h_cut, int *vAux, int sz);
+
 EXTERN_C_END
 
 #endif // CUT_GPU_H_
