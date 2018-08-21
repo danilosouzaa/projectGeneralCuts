@@ -5,7 +5,7 @@
 //#include "configGpu.h"
 #include "solutionGpu.h"
 #include <sys/time.h>
-
+#include "lp.h"
 EXTERN_C_BEGIN
 
 //void runCPUR1(Cut_gpu *h_cut, solutionGpu *h_solution, int precision);

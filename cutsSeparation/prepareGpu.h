@@ -4,6 +4,7 @@
 //#include "cut_gpu.h"
 //#include "configGpu.h"
 #include "solutionGpu.h"
+#include "omp.h"
 #include "gpulib/types.h"
 #include <sys/time.h>
 
@@ -14,13 +15,13 @@ int verifyGpu();
 void setGpuThread(int nGpu);
 
 
-Cut_gpu* zeroHalf_runGPU(Cut_gpu *h_cut, Cut_gpu_aux *cut_aux, int sizeGroup, int precision, int nThread, int nBlocks);
+Cut_gpu* zeroHalf_runGPU(Cut_gpu *h_cut, int sizeGroup, int precision, int nThread, int nBlocks);
 
 //Cut_gpu* initial_runGPU(Cut_gpu *h_cut,Cut_gpu_aux *cut_aux, int numberMaxConst, int nRuns, int maxDenominator, int precision, int type);
 
 //Cut_gpu* initial_runGPU(Cut_gpu *h_cut, Cut_gpu_aux *cut_aux, int maxDenominator, int precision, int type, int nThreads, int nBlocks, int nRR_cggpu);
 
-Cut_gpu* initial_runGPU(Cut_gpu *h_cut, int maxDenominator, int precision, int type, int nThreads, int nBlocks, int nRR_cggpu);
+Cut_gpu* initial_runGPU(Cut_gpu *h_cut, int precision, int nThreads, int nBlocks, int nRR_cggpu);
 
 //Cut_gpu* second_phase_runGPU(Cut_gpu *h_cut, Cut_gpu_aux *cut_aux, int numberMaxConst, int nRuns, int maxDenominator, int precision);
 

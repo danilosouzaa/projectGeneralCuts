@@ -48,7 +48,7 @@ int verifyGpu()
 
 
 
-Cut_gpu* zeroHalf_runGPU(Cut_gpu *h_cut, Cut_gpu_aux *cut_aux, int sizeGroup, int precision, int nThreads, int nBlocks){
+Cut_gpu* zeroHalf_runGPU(Cut_gpu *h_cut, int sizeGroup, int precision, int nThreads, int nBlocks){
     int deviceCuda = 0;
     deviceCuda = verifyGpu();
     Cut_gpu* out_h_cut;
@@ -112,7 +112,7 @@ Cut_gpu* zeroHalf_runGPU(Cut_gpu *h_cut, Cut_gpu_aux *cut_aux, int sizeGroup, in
     return h_cut;//temporariamente para testes
 }
 
-Cut_gpu* initial_runGPU(Cut_gpu *h_cut, int maxDenominator, int precision, int type, int nThreads, int nBlocks, int nRR_cggpu)
+Cut_gpu* initial_runGPU(Cut_gpu *h_cut, int precision, int nThreads, int nBlocks, int nRR_cggpu)
 {
 
     int deviceCuda = 0;
@@ -191,15 +191,7 @@ Cut_gpu* initial_runGPU(Cut_gpu *h_cut, int maxDenominator, int precision, int t
         }
         gpuMalloc((void*)&d_seed, sizeof(unsigned int)*(nRuns));
         gpuMemcpy(d_seed, h_seed, sizeof(unsigned int)*(nRuns), cudaMemcpyHostToDevice);
-
-        if(type==1)
-        {
-            runGPUR1<<<nB,nT>>>(d_cut, d_solution_r1, d_seed, states, nT, precision);
-        }
-        else
-        {
-            runGPUR1_aleatory<<<nB,nT>>>(d_cut, d_solution_r1, d_seed, states, nT, precision, maxDenominator);
-        }
+        runGPUR1<<<nB,nT>>>(d_cut, d_solution_r1, d_seed, states, nT, precision);
         gpuDeviceSynchronize();
 
         gpuMemcpy(h_solution_r1, d_solution_r1, size_solution_r1, cudaMemcpyDeviceToHost);

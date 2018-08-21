@@ -1,1 +1,1 @@
-nvcc --compiler-options "-Wall -O2 -pg -g -std=c99 -lpthread -fopenmp -lgomp -DDEBUG -DGRB -O3"  lp.cpp main.cpp cut_gpu.c solutionGpu.c gCut_gpu.cu gSolutionGpu.cu prepareGpu.cu prepareCpu.c -I/opt/gurobi752/linux64/include/ -L/opt/gurobi752/linux64/lib/ -lgurobi75 -lm -o separationCuts
+nvcc --compiler-options "-Wall -O2 -pg -g -std=c99 -lpthread -fopenmp -lgomp -DDEBUG -DGRB -O3"  lp.cpp main.cpp cut_gpu.c solutionGpu.c gCut_gpu.cu gSolutionGpu.cu prepareGpu.cu prepareCPU.c -I/opt/gurobi752/linux64/include/ -L/opt/gurobi752/linux64/lib/ -lgurobi75 -lm -o separationCuts

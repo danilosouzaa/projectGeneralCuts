@@ -42,7 +42,8 @@
 #define LPC_FLOW       7
 
 #define RES_RR          12
-#define LPC_CGGPU      13
+#define LPC_CGCPU       13
+#define LPC_CGGPU       13
 #define LPC_CGGPUR2      14
 /* constraint types, used when querying model */
 #define CONS_PARTITIONING  0
