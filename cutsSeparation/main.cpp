@@ -35,13 +35,26 @@ int* calculateViolation(Cut_gpu *h_cut,int precision){
             vViolation[i] += h_cut->Coefficients[j]*h_cut->xAsterisc[el];
         }
         vViolation[i] = (h_cut->rightSide[i]*precision) - vViolation[i];
-        //printf("Violation %d: %d %d\n",i, vViolation[i], h_cut->numberConstrains);
+        printf("Violation %d: %d %d\n",i, vViolation[i], h_cut->numberConstrains);
 //        if(vViolation[i]<=0)
 //            getchar();
     }
     return vViolation;
 }
 
+
+int* sortPerViolation(int *vViolation, int nConstraints){
+    int *pos= (int*)malloc(sizeof(int)*nConstraints);
+    int i;
+    for(i=0;i<nConstraints;i++){
+        pos[i] = i;
+    }
+    bubble_sort(vViolation,pos,nConstraints);
+    for(i = 0;i<nConstraints;i++){
+        printf("%d - %d\n",pos[i],vViolation[i]);
+    }
+    return pos;
+}
 int main(int argc, const char *argv[])
 {
     if(argc<5){
@@ -62,10 +75,27 @@ int main(int argc, const char *argv[])
     Cut_gpu *h_cut = fillStructPerLP(precision, lp);
     int *vViolation = calculateViolation(h_cut,precision);
   //  getchar();
+    int *pos = sortPerViolation(vViolation,h_cut->numberConstrains);
     int *vAux = (int*)malloc(sizeof(int)*szGroup1);
     int *idxOriginal;
     int valided;
     valided  = generateVetorSec(h_cut,vAux,szGroup1);
+    int aux = 0;i=0;
+    do{
+        if(h_cut->rightSide[ pos[i] ]!=0){
+            vAux[aux] = pos[i];
+            aux++;
+        }
+        i++;
+        if(i>=h_cut->numberConstrains){
+            szGroup1 = aux;
+        }
+    }while(aux<szGroup1 );
+//    for(i=0;i<szGroup1;i++){
+//        if(h_cut->rightSide[ pos[aux] ]!=0){
+//            vAux[i] = pos[];
+//        }
+//    }
 //    for(i=0;i<szGroup1;i++){
 //        vAux[i] = i;
 //    }
@@ -79,23 +109,26 @@ int main(int argc, const char *argv[])
     //getchar();
     int cutIni = h_cut_group->numberConstrains;
     int nBlock = 2, nThread = 512;
-    //h_cut_group = initial_runGPU(h_cut_group,precision,nBlock,nThread,szGroup1);
-   h_cut_group = zeroHalf_runGPU(h_cut_group,szGroup1,precision,nThread,nBlock);
+    h_cut_group = initial_runGPU(h_cut_group,precision,nThread,nBlock,szGroup1);
+   //h_cut_group = zeroHalf_runGPU(h_cut_group,szGroup1,precision,nThread,nBlock);
 
     printf("numero inicial: %d, depois : %d\n",cutIni, h_cut_group->numberConstrains) ;
    //s h_cut_group =
     //getchar();
+    //lp_write_lp(lp,"testes.lp");
     lp_set_max_seconds( lp, 30 );
     lp_optimize( lp );
 
 //    lp_set_max_seconds(lp,60);
 //    lp_optimize(lp);
 //    lp_free(&lp);
+
     free(h_cut);
     lp_free( &lp );
     lp_close_env();
     free(idxOriginal);
     free(vAux);
     free(vViolation);
+    free(pos);
     return 0;
 }

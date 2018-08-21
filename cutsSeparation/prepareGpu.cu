@@ -138,7 +138,7 @@ Cut_gpu* initial_runGPU(Cut_gpu *h_cut, int precision, int nThreads, int nBlocks
 
 //        h_cut = complementCutPhase1_RR(h_cut,cut_aux,nRR_cggpu);
         //printf("number constrains: %d \n number constrains new: %d \n", h_cut->numberConstrains, temp->numberConstrains);
-        //printf("Qnt RES_RR: %d %d %d\n",numberC, nBlocks, nThreads);
+        printf("Qnt RES_RR: %d %d %d\n",numberC, nBlocks, nThreads);
         int val = numberC + (h_cut->numberConstrains - nC_initial);
        // printf("Qnt %d %d\n",val, nC_initial);
         //float auxD = ((float)numberC)/((float)nBlocks);
@@ -161,6 +161,7 @@ Cut_gpu* initial_runGPU(Cut_gpu *h_cut, int precision, int nThreads, int nBlocks
         //int nB = 1;
         //int nB = nBlocks;
         nRuns = nT*nB;
+        printf("NumRuns: %d\n",nRuns);
 //        nRuns = 1000;
 //        nB = 10;
 //        nT = 100;
