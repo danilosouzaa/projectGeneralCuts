@@ -1086,10 +1086,14 @@ void show_contraints(Cut_gpu *h_cut, int constraint){
      for(j = h_cut->ElementsConstraints[constraint]; j< h_cut->ElementsConstraints[constraint + 1]; j++)
      {
         if( aux == 0 ){
-            printf("%d X_%d ", h_cut->Coefficients[j], h_cut->Elements[j]);
-            aux++;
+            if(h_cut->xAsterisc[ h_cut->Elements[j] ] != 0){
+            printf("%d X_%d = %d", h_cut->Coefficients[j], h_cut->Elements[j],h_cut->xAsterisc[ h_cut->Elements[j] ]);
+            aux++;}
         }else{
-            printf("+ %d X_%d ", h_cut->Coefficients[j], h_cut->Elements[j]);
+            if(h_cut->xAsterisc[ h_cut->Elements[j] ] != 0){
+            printf("+ %d X_%d = %d", h_cut->Coefficients[j], h_cut->Elements[j], h_cut->xAsterisc[ h_cut->Elements[j] ]);
+            }
+
         }
 
      }

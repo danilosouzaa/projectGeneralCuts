@@ -108,19 +108,41 @@ int returnIndVector(TNames *v,char *nome, int sz)
 Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
 {
     int numberVariables, numberConstrains, numberNonZero;
-    int i, j, k;
+    int i, j, k, numberConstrainsLeft = 0, numberNonZeroNew = 0;
     numberVariables = lp_cols(lp);
     numberConstrains = lp_rows(lp);
     numberNonZero = lp_nz(lp);
     int *idx = (int*)malloc(sizeof(int)*numberVariables);
     double *coef = (double*)malloc(sizeof(double)*numberVariables);
+    for(i=0; i<numberConstrains; i++)
+    {
+        if(lp_sense(lp,i)=='L')
+        {
+            numberConstrainsLeft++;
+            for(j=0; j<numberVariables; j++)
+            {
+                coef[j]=0.0;
+                idx[j] = 0;
+            }
+            lp_row(lp,i,idx,coef);
+            for(j=0; j<numberVariables; j++)
+            {
+                if(coef[j]!=0)
+                {
+                    numberNonZeroNew ++;
+                }
+            }
+        }
+    }
+ //   printf("Novos valores: %d %d", numberConstrainsLeft,numberNonZeroNew);
+//    getchar();
     double rhs;
     double *xTemp;
     //printf("testes: %d %d %d", numberConstrains, numberVariables, numberNonZero);
     lp_optimize_as_continuous(lp);
     xTemp = lp_x(lp);
     Cut_gpu *h_cut;
-    h_cut = AllocationStructCut(numberNonZero,numberConstrains,numberVariables);
+    h_cut = AllocationStructCut(numberNonZeroNew,numberConstrainsLeft,numberVariables);
     for(i=0; i<numberVariables; i++)
     {
         coef[i]=0.0;
@@ -133,31 +155,48 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
     // lp_row(lp,0,idx,coef);
     int aux = 0;
     h_cut->ElementsConstraints[0] = 0;
+    int contador = 0;
     for(i=0; i<numberConstrains; i++)
     {
-        h_cut->typeConstraints[i] = 0;
-        lp_row(lp,i,idx,coef);
-        for(j=0; j<numberVariables; j++)
+        //printf("Sense: %c\n",lp_sense(lp,i));
+        //getchar();
+        if(lp_sense(lp,i)=='L')
         {
-            if(coef[j]!=0.0)
+
+            h_cut->typeConstraints[i] = 0;
+            lp_row(lp,i,idx,coef);
+            for(j=0; j<numberVariables; j++)
             {
-                //  printf("Coef: %f idx: %d \t ", coef[j],idx[j]);
-                h_cut->Coefficients[aux] = coef[j];
-                h_cut->Elements[aux] = idx[j];
-                aux++;
+                if(coef[j]!=0.0)
+                {
+
+                    //printf("Coef: %f idx: %d \t ", coef[j],idx[j]);
+                    h_cut->Coefficients[aux] = coef[j];
+                    h_cut->Elements[aux] = idx[j];
+                    aux++;
+                }
+                coef[j] = 0.0;
+                idx[j] = 0;
             }
-            coef[j] = 0.0;
-            idx[j] = 0;
+            //printf("\n");
+
+            h_cut->ElementsConstraints[contador+1] = aux;
+            rhs = lp_rhs(lp,i);
+            h_cut->rightSide[contador] = rhs;
+            contador++;
         }
-        h_cut->ElementsConstraints[i+1] = aux;
-        rhs = lp_rhs(lp,i);
-        h_cut->rightSide[i] = rhs;
-        //printf("rhs: %f\n", rhs);
     }
+    //printf("contador: %d aux: %d const: %d cont: %d\n",contador,aux,h_cut->numberConstrains, h_cut->cont);
+
     //printf("AUx: %d total: %d\n", aux, numberNonZero);
     //getchar();
     free(idx);
     free(coef);
+    //printf("\n");
+    //for(i=0;i<=h_cut->numberConstrains;i++){
+    //    printf("%d \t", h_cut->ElementsConstraints[i]);
+    //}
+    //getchar();
     //free(xTemp);
     return h_cut;
 }
@@ -206,7 +245,7 @@ Cut_gpu *CreateGroupForVectorNumberConstraints(Cut_gpu *h_cut, int *vectorConstr
     idxOriginal = (int*)malloc(sizeof(int)*aux);
     Cut_gpu *h_cut_group = AllocationStructCut(cont,szConstraints,aux);
     aux = 0;
-    for(i=0; i<h_cut->numberConstrains; i++)
+    for(i=0; i<h_cut->numberVariables; i++)
     {
         if(vAux[i]==1)
         {
@@ -259,20 +298,25 @@ void setParameters_ccg(parameters_ccg *parCCG, int mode)
 
 }
 
-int generateVetorSec(Cut_gpu *h_cut, int *vAux, int sz){
+int generateVetorSec(Cut_gpu *h_cut, int *vAux, int sz)
+{
     int el, cont = 0,i=0,j=0;
-    while(cont<sz){
-        for(i = h_cut->ElementsConstraints[j];i<h_cut->ElementsConstraints[j+1];i++){
+    while(cont<sz)
+    {
+        for(i = h_cut->ElementsConstraints[j]; i<h_cut->ElementsConstraints[j+1]; i++)
+        {
             el = h_cut->Elements[i];
-            if((h_cut->Coefficients[i]!=0)&&(h_cut->xAsterisc[el]!=0)){
-               vAux[cont] = j;
-               cont++;
-               break;
+            if((h_cut->Coefficients[i]!=0)&&(h_cut->xAsterisc[el]!=0))
+            {
+                vAux[cont] = j;
+                cont++;
+                break;
             }
 
         }
         j++;
-        if(j==h_cut->numberConstrains){
+        if(j==h_cut->numberConstrains)
+        {
             printf("Number Constraints invalided!");
             return -1;
         }

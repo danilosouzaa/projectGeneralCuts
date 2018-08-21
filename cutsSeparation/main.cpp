@@ -24,21 +24,22 @@ extern "C"
 
 */
 
-int* calculateViolation(Cut_gpu *h_cut){
+int* calculateViolation(Cut_gpu *h_cut,int precision){
     int i, j, el;
     int *vViolation = (int*)malloc(sizeof(int)*h_cut->numberConstrains);
     for(i=0;i<h_cut->numberConstrains;i++){
+        //show_contraints(h_cut,i);
         vViolation[i] = 0;
         for(j = h_cut->ElementsConstraints[i];j<h_cut->ElementsConstraints[i+1];j++){
             el = h_cut->Elements[j];
             vViolation[i] += h_cut->Coefficients[j]*h_cut->xAsterisc[el];
         }
-        vViolation[i] = h_cut->rightSide[i] - vViolation[i];
-        printf("Violation: %d\n", vViolation[i]);
+        vViolation[i] = (h_cut->rightSide[i]*precision) - vViolation[i];
+        //printf("Violation %d: %d %d\n",i, vViolation[i], h_cut->numberConstrains);
+//        if(vViolation[i]<=0)
+//            getchar();
     }
     return vViolation;
-
-
 }
 
 int main(int argc, const char *argv[])
@@ -53,14 +54,14 @@ int main(int argc, const char *argv[])
     int maxDenomitor =atoi(argv[4]);
     int i;
 
-    printf("%d %d\n",precision,szGroup1);
-    getchar();
+//    printf("%d %d\n",precision,szGroup1);
+//    getchar();
     strcat(name,argv[1]);
     LinearProgram *lp = lp_create();
     lp_read(lp,name);
     Cut_gpu *h_cut = fillStructPerLP(precision, lp);
-    int *vViolation = calculateViolation(h_cut);
-    getchar();
+    int *vViolation = calculateViolation(h_cut,precision);
+  //  getchar();
     int *vAux = (int*)malloc(sizeof(int)*szGroup1);
     int *idxOriginal;
     int valided;
@@ -68,16 +69,18 @@ int main(int argc, const char *argv[])
 //    for(i=0;i<szGroup1;i++){
 //        vAux[i] = i;
 //    }
-
+//    for(i=0;i<szGroup1;i++){
+//        show_contraints(h_cut,i);
+//    }
     Cut_gpu *h_cut_group = CreateGroupForVectorNumberConstraints(h_cut,vAux,szGroup1,idxOriginal);
     for(i=0;i<szGroup1;i++){
         show_contraints(h_cut_group,i);
     }
-    getchar();
+    //getchar();
     int cutIni = h_cut_group->numberConstrains;
     int nBlock = 2, nThread = 512;
-    h_cut_group = initial_runGPU(h_cut_group,precision,nBlock,nThread,szGroup1);
-    h_cut_group = zeroHalf_runGPU(h_cut_group,szGroup1,precision,nThread,nBlock);
+    //h_cut_group = initial_runGPU(h_cut_group,precision,nBlock,nThread,szGroup1);
+   h_cut_group = zeroHalf_runGPU(h_cut_group,szGroup1,precision,nThread,nBlock);
 
     printf("numero inicial: %d, depois : %d\n",cutIni, h_cut_group->numberConstrains) ;
    //s h_cut_group =
