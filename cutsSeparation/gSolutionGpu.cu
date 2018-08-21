@@ -455,7 +455,7 @@ __device__ void DecimalToBinary(int number,unsigned char v[], int sizegroup)
 
 __global__ void runGPUZerohHalf(Cut_gpu *d_cut, int *d_solution, int nThread,int sizeGroup, int nBlock, int precision)
 {
-    unsigned char binaryTest[20];//Criar inicialmente com 20 para testes.
+    unsigned char *binaryTest = (unsigned char*)malloc(sizeof(unsigned char)*sizeGroup);//Criar inicialmente com 20 para testes.
     int nInitial, nFinal, ite, i, j;
     __shared__ int nRunsPerThreads;
     int idUnique = threadIdx.x + blockIdx.x*nThread;
@@ -525,6 +525,7 @@ __global__ void runGPUZerohHalf(Cut_gpu *d_cut, int *d_solution, int nThread,int
         }
     }
     d_solution[idUnique] = best_number;
+    free(binaryTest);
     free(Coef);
     //printf("idUnique: %d initial: %d final: %d\n", idUnique, nInitial, nFinal);
 }
