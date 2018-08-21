@@ -31,9 +31,35 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
-		<Unit filename="main.c">
+		<Unit filename="cut_gpu.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="cut_gpu.h" />
+		<Unit filename="gCut_gpu.cu" />
+		<Unit filename="gCut_gpu.cuh" />
+		<Unit filename="gSolutionGpu.cu" />
+		<Unit filename="gSolutionGpu.cuh" />
+		<Unit filename="gpulib/gpu.cuh" />
+		<Unit filename="gpulib/helper_cuda.h" />
+		<Unit filename="gpulib/helper_string.h" />
+		<Unit filename="gpulib/log.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="gpulib/log.h" />
+		<Unit filename="gpulib/types.h" />
+		<Unit filename="lp.cpp" />
+		<Unit filename="lp.h" />
+		<Unit filename="main.cpp" />
+		<Unit filename="prepareCPU.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="prepareCPU.h" />
+		<Unit filename="prepareGpu.cu" />
+		<Unit filename="prepareGpu.h" />
+		<Unit filename="solutionGpu.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="solutionGpu.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />
