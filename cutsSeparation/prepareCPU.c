@@ -523,3 +523,4 @@ Cut_gpu* second_phase_runCPU(Cut_gpu *h_cut, int numberMaxConst, int nRuns, int 
     free(h_cut);
     return out_cut_gpu;
 }
+

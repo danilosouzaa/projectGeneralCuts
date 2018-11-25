@@ -64,3 +64,29 @@ listNeigh *createGPUlist(const listNeigh* list_t){
 	free(h_list_gpu);
 	return d_list;
 }
+
+
+Cover_gpu* createGPUcover(const Cover_gpu* h_cover){
+        int cont = h_cover->cont;
+        int nConstraints = h_cover->numberConstraints;
+        size_t size_cover = sizeof(Cover_gpu) +
+                      sizeof(TCoefficients)*(h_cover->cont) +
+                      sizeof(TElementsConstraints)*(h_cover->numberConstraints+1) +
+                      sizeof(TRightSide)*(h_cover->numberConstraints);
+        Cover_gpu *h_cover_gpu = (Cover_gpu*)malloc(size_cover);
+
+        memcpy(h_cover_gpu,h_cover, size_cover);
+        Cover_gpu* d_cover;
+        gpuMalloc((void**)&d_cover, size_cover);
+	    gpuMemset(d_cover,0,size_cover);
+
+        h_cover_gpu->Coefficients = (TCoefficients*)(d_cover+1);
+        h_cover_gpu->ElementsConstraints = (TElementsConstraints*)(h_cover_gpu->Coefficients + cont);
+        h_cover_gpu->rightSide = (TRightSide*) (h_cover_gpu->ElementsConstraints + (nConstraints+1) );
+        h_cover_gpu->numberConstraints = nConstraints;
+        h_cover_gpu->cont = cont;
+        gpuMemcpy(d_cover, h_cover_gpu, size_cover, cudaMemcpyHostToDevice);
+        free(h_cover_gpu);
+        return d_cover;
+
+}

@@ -42,6 +42,16 @@ int* calculateViolation(Cut_gpu *h_cut,int precision){
     return vViolation;
 }
 
+int *contNumberPosible(Cut_gpu *h_cut){
+    int *qntPerConstraints = (int*)malloc(sizeof(int)*h_cut->numberConstrains);
+    int i = 0, aux;
+    for(i=0;i<h_cut->numberConstrains;i++){
+        aux = h_cut->ElementsConstraints[i+1] - h_cut->ElementsConstraints[i];
+        qntPerConstraints[i] = aux;
+    }
+
+    return qntPerConstraints;
+}
 
 int* sortPerViolation(int *vViolation, int nConstraints){
     int *pos= (int*)malloc(sizeof(int)*nConstraints);
@@ -55,6 +65,7 @@ int* sortPerViolation(int *vViolation, int nConstraints){
     }
     return pos;
 }
+
 int main(int argc, const char *argv[])
 {
     if(argc<5){
@@ -73,6 +84,20 @@ int main(int argc, const char *argv[])
     LinearProgram *lp = lp_create();
     lp_read(lp,name);
     Cut_gpu *h_cut = fillStructPerLP(precision, lp);
+    int *convertVaribles;
+    printf("Number Variables antes: %d\n", h_cut->numberVariables);
+    h_cut = removeNegativeCoefficientsAndSort(h_cut,convertVaribles,precision);
+    int *numberVariablesPerConstraints;
+    numberVariablesPerConstraints = contNumberPosible(h_cut);
+
+    printf("Number Variables depois: %d\n", h_cut->numberVariables);
+    printf("Number Constraints: %d\n", h_cut->numberConstrains);
+    getchar();
+//    int j = 0;
+//    for(j=0;j<h_cut->numberConstrains;j++){
+//        show_contraints(h_cut,j);
+//    }
+//    getchar();
     int *vViolation = calculateViolation(h_cut,precision);
   //  getchar();
     int *pos = sortPerViolation(vViolation,h_cut->numberConstrains);
@@ -80,7 +105,7 @@ int main(int argc, const char *argv[])
     int *idxOriginal;
     int valided;
     valided  = generateVetorSec(h_cut,vAux,szGroup1);
-    int aux = 0;i=0;
+    int aux = 0; i=0;
     do{
         if(h_cut->rightSide[ pos[i] ]!=0){
             vAux[aux] = pos[i];
@@ -110,9 +135,10 @@ int main(int argc, const char *argv[])
     int cutIni = h_cut_group->numberConstrains;
     int nBlock = 2, nThread = 512;
     h_cut_group = initial_runGPU(h_cut_group,precision,nThread,nBlock,szGroup1);
+    h_cut_group = generateCutsCover(h_cut,10,10);
    //h_cut_group = zeroHalf_runGPU(h_cut_group,szGroup1,precision,nThread,nBlock);
 
-    printf("numero inicial: %d, depois : %d\n",cutIni, h_cut_group->numberConstrains) ;
+    printf("numero inicial: %d, depois : %d\n",cutIni, h_cut_group->numberConstrains);
    //s h_cut_group =
     //getchar();
     //lp_write_lp(lp,"testes.lp");
@@ -122,7 +148,7 @@ int main(int argc, const char *argv[])
 //    lp_set_max_seconds(lp,60);
 //    lp_optimize(lp);
 //    lp_free(&lp);
-
+    free(h_cut_group);
     free(h_cut);
     lp_free( &lp );
     lp_close_env();

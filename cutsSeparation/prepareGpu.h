@@ -37,4 +37,7 @@ void returnDimension(int *nB, int *nT, int nRuns,int numberConstraints);
 //void returnDimension(int *nB, int *nT, int nRuns);
 
 void fillParImpar(int *vPar,int *vImpar, Cut_gpu *h_cut);
+
+Cut_gpu* generateCutsCover(Cut_gpu *h_cut, int nThreads, int nBlocks);
+
 #endif

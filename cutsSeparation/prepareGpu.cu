@@ -183,16 +183,16 @@ Cut_gpu* initial_runGPU(Cut_gpu *h_cut, int precision, int nThreads, int nBlocks
         Cut_gpu *d_cut = createGPUcut(h_cut, h_cut->numberVariables, h_cut->numberConstrains);
         curandState_t *states;
         cudaMalloc((void**)&states, (nRuns)*sizeof(curandState_t));
-        unsigned int *h_seed = (unsigned int*)malloc(sizeof(unsigned int)*(nRuns));
-        unsigned int *d_seed;
-        srand(time(NULL));
-        for(i=0; i<(nRuns); i++)
-        {
-            h_seed[i] = rand()%100000;
-        }
-        gpuMalloc((void*)&d_seed, sizeof(unsigned int)*(nRuns));
-        gpuMemcpy(d_seed, h_seed, sizeof(unsigned int)*(nRuns), cudaMemcpyHostToDevice);
-        runGPUR1<<<nB,nT>>>(d_cut, d_solution_r1, d_seed, states, nT, precision);
+        //unsigned int *h_seed = (unsigned int*)malloc(sizeof(unsigned int)*(nRuns));
+        //unsigned int *d_seed;
+        //srand(time(NULL));
+        //for(i=0; i<(nRuns); i++)
+        //{
+        //    h_seed[i] = rand()%100000;
+        //}
+       // gpuMalloc((void*)&d_seed, sizeof(unsigned int)*(nRuns));
+       // gpuMemcpy(d_seed, h_seed, sizeof(unsigned int)*(nRuns), cudaMemcpyHostToDevice);
+        runGPUR1<<<nB,nT>>>(d_cut, d_solution_r1, nT, precision);
         gpuDeviceSynchronize();
 
         gpuMemcpy(h_solution_r1, d_solution_r1, size_solution_r1, cudaMemcpyDeviceToHost);
@@ -211,9 +211,9 @@ Cut_gpu* initial_runGPU(Cut_gpu *h_cut, int precision, int nThreads, int nBlocks
 
         gpuFree(d_solution_r1);
         gpuFree(d_cut);
-        gpuFree(d_seed);
-        gpuFree(states);
-        free(h_seed);
+        //gpuFree(d_seed);
+        //gpuFree(states);
+        //free(h_seed);
 
         int cont=0;
 
@@ -625,4 +625,85 @@ listNeigh *returnMatrixNeighborhood (Cut_gpu *h_cut)
     return list_t;
 }
 
+
+
+
+Cut_gpu* generateCutsCover(Cut_gpu *h_cut, int nBlocks, int nThreads){
+    int deviceCuda = 0;
+    deviceCuda = verifyGpu();
+    Cover_gpu *h_cover = CopyCutToCover(h_cut);
+    int i, nRuns, nRunsPerThread;
+    if(deviceCuda>0){
+        nRuns = h_cover->numberConstraints;
+        if(nRuns%(nBlocks*nThreads) ==0 ){
+            nRunsPerThread = nRuns/(nBlocks*nThreads);
+        }else{
+            nRunsPerThread = ( nRuns/(nBlocks*nThreads) )+ 1;
+        }
+        printf("NumRuns: %d\n",nRuns);
+        printf("NumRunsPerThread: %d\n",nRunsPerThread);
+        size_t size_cover = sizeof(Cover_gpu) +
+                          sizeof(TCoefficients)*(h_cover->cont) +
+                          sizeof(TElementsConstraints)*(h_cover->numberConstraints+1) +
+                          sizeof(TRightSide)*(h_cover->numberConstraints);
+        Cover_gpu *d_cover = createGPUcover(h_cover);
+        int *h_solutionCover;
+        h_solutionCover = (int*)malloc(sizeof(int)*h_cover->cont);
+        for(i=0;i<h_cover->cont;i++){
+            h_solutionCover[i] = 0;
+        }
+        int *d_solutionCover;
+        gpuMalloc((void*)&d_solutionCover, sizeof(int)*(h_cover->cont));
+        gpuMemcpy(d_solutionCover, h_solutionCover, sizeof(int)*(h_cover->cont), cudaMemcpyHostToDevice);
+        runGPUCover<<<nBlocks,nThreads>>>(d_cover,d_solutionCover,nThreads,nRuns,nRunsPerThread);
+        //runGPUZerohHalf<<<nBlocks,nThreads>>>(d_cut, d_solutionZHalf, nThreads, sizeGroup, nBlocks, precision);
+        gpuDeviceSynchronize();
+        getchar();
+        gpuMemcpy(h_solutionCover, d_solutionCover, sizeof(int)*(h_cover->cont), cudaMemcpyDeviceToHost);
+
+        gpuMemcpy(h_cover, d_cover, size_cover, cudaMemcpyDeviceToHost);
+        h_cover->Coefficients = (TCoefficients*)(h_cover + 1);
+        h_cover->ElementsConstraints = (TElementsConstraints*)(h_cover->Coefficients + (h_cover->cont));
+        h_cover->rightSide = (TRightSide*)(h_cover->ElementsConstraints + (h_cover->numberConstraints+1));
+        gpuFree(d_solutionCover);
+        gpuFree(d_cover);
+        int qnt_cuts_cover = 0;
+        int *idc_cover = (int*)malloc(sizeof(int)*h_cover->numberConstraints);
+        //int j;
+        for(i=0;i<h_cover->numberConstraints;i++){
+            idc_cover[i] = 0;
+            if(h_cover->rightSide[i]!=h_cut->rightSide[i]){
+                idc_cover[i] = 1;
+                qnt_cuts_cover++;
+            }
+        }
+        h_cut = createCutsCover(h_cut,h_cover, idc_cover, qnt_cuts_cover);
+        //    for(j=h_cover->ElementsConstraints[i];j<h_cover->ElementsConstraints[i+1];j++){
+        //        printf(" %d - %d ", h_solutionCover[j], h_cover->Coefficients[j]);
+        //    }
+        //    printf("rhs %d", h_cover->rightSide[i]);
+        //    printf("\n");
+
+        //}
+        //getchar();
+        //for(i=0;i<nBlocks*nThreads;i++){
+        //    if(h_solutionZHalf[i]!= -1){
+        //        qnt_cuts_zero++;
+        //    }
+        //}
+        printf("qnt cut cover: %d\n", qnt_cuts_cover);
+
+        //if(qnt_cuts_zero>0){
+        //    out_h_cut = createCutsStrongZeroHalf(h_cut, h_solutionZHalf, sizeGroup, nBlocks, nThreads, precision, qnt_cuts_zero,h_cut->cont,h_cut->numberConstrains);
+        //    free(h_solutionZHalf);
+        //    free(h_cut);
+        //   return out_h_cut;
+            //insert creates cuts strong
+        //}
+        free(idc_cover);
+        free(h_solutionCover);
+        free(h_cover);
+    }
+    return h_cut;
+}
 

@@ -31,6 +31,8 @@ typedef int TSConst;
 typedef int TSPAux;
 typedef short int TSGroup;
 typedef unsigned char TSVetSol;
+typedef int TSNumber;
+
 
 typedef struct {
     TSMult *SMult;
@@ -43,6 +45,8 @@ typedef struct{
     TSGroup sizeGroup;
     TSVetSol *VetSol;
 }solutionZeroHalf;
+
+
 
 typedef struct{
     long    tv_sec;         /* seconds */
@@ -103,6 +107,9 @@ Cut_gpu* createCutsStrongZeroHalf(Cut_gpu *h_cut, int *h_solution, int sizeGroup
 Cut_gpu* complementCutPhase1(Cut_gpu *h_cut, int k);
 
 Cut_gpu* complementCutPhase1_RR(Cut_gpu *h_cut, Cut_gpu_aux *h_cut_aux, int nRR_cggpu );
+
+Cut_gpu* createCutsCover(Cut_gpu *h_cut, Cover_gpu *h_cover, int *idc_Cover, int nCuts);
+
 
 int fat(int n);
 

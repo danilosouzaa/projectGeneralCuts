@@ -38,6 +38,14 @@ typedef struct {
 }Cut_gpu;
 
 typedef struct{
+    int numberConstraints;
+    int cont;
+    TCoefficients *Coefficients;
+    TElementsConstraints *ElementsConstraints;
+    TRightSide *rightSide;
+}Cover_gpu;
+
+typedef struct{
     int numberVariables;
     int numberConstrains;
     TInterval *intervalMin;
@@ -64,6 +72,10 @@ typedef struct {
 
 Cut_gpu *AllocationStructCut(int cont, int nConstrains, int nVariables);
 
+Cover_gpu *AllocationStructCover(int cont, int nConstraints);
+
+Cover_gpu *CopyCutToCover(Cut_gpu *h_cut);
+
 Cut_gpu_aux *AllocationStructCutAux(int nConstrains, int nVariables, int nCont);
 
 listNeigh *AllocationListNeigh(int nConstrains, int nList);
@@ -73,6 +85,8 @@ listNeigh *AllocationListNeigh(int nConstrains, int nList);
 //Cut_gpu *readFile(char *fileName, int precision, Cut_gpu_aux* cut_aux);
 
 Cut_gpu* createGPUcut(const Cut_gpu* h_cut, int nVariables, int nConstrains);
+
+Cover_gpu* createGPUcover(const Cover_gpu* h_cover);
 
 listNeigh *createGPUlist(const listNeigh* list_t, int nConstrains, int nList);
 
@@ -87,6 +101,8 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp);
 void setParameters_ccg(parameters_ccg *parCCG, int mode);
 
 int generateVetorSec(Cut_gpu *h_cut, int *vAux, int sz);
+
+Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector, int precision);
 
 EXTERN_C_END
 

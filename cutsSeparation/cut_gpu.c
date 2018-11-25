@@ -26,6 +26,37 @@ Cut_gpu *AllocationStructCut(int cont, int nConstrains, int nVariables)
     return cut;
 }
 
+Cover_gpu *AllocationStructCover(int cont, int nConstraints){
+        size_t size_cover = sizeof(Cover_gpu) +
+                      sizeof(TCoefficients)*(cont) +
+                      sizeof(TElementsConstraints)*(nConstraints+1) +
+                      sizeof(TRightSide)*(nConstraints);
+        Cover_gpu *h_cover = (Cover_gpu*)malloc(size_cover);
+        assert(h_cover!=NULL);
+        memset(h_cover,0,size_cover);
+        h_cover->Coefficients = (TCoefficients*)(h_cover+1);
+        h_cover->ElementsConstraints = (TElementsConstraints*)(h_cover->Coefficients + cont);
+        h_cover->rightSide = (TRightSide*) (h_cover->ElementsConstraints + (nConstraints+1) );
+        h_cover->numberConstraints = nConstraints;
+        h_cover->cont = cont;
+        return h_cover;
+}
+
+
+Cover_gpu *CopyCutToCover(Cut_gpu *h_cut){
+    Cover_gpu *cover = AllocationStructCover(h_cut->cont,h_cut->numberConstrains);
+    int i;
+    for(i=0; i< h_cut->cont;i++){
+        cover->Coefficients[i] = h_cut->Coefficients[i];
+    }
+    for(i=0;i<h_cut->numberConstrains;i++){
+        cover->ElementsConstraints[i] = h_cut->ElementsConstraints[i];
+        cover->rightSide[i] = h_cut->rightSide[i];
+    }
+    cover->ElementsConstraints[i] = h_cut->ElementsConstraints[i];
+    return cover;
+}
+
 
 Cut_gpu_aux *AllocationStructCutAux(int nConstrains, int nVariables, int nCont)
 {
@@ -134,7 +165,7 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
             }
         }
     }
- //   printf("Novos valores: %d %d", numberConstrainsLeft,numberNonZeroNew);
+//   printf("Novos valores: %d %d", numberConstrainsLeft,numberNonZeroNew);
 //    getchar();
     double rhs;
     double *xTemp;
@@ -143,6 +174,8 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
     xTemp = lp_x(lp);
     Cut_gpu *h_cut;
     h_cut = AllocationStructCut(numberNonZeroNew,numberConstrainsLeft,numberVariables);
+    int *v_aux = (int*)malloc(sizeof(int)*(numberVariables + 1));
+    int tam;
     for(i=0; i<numberVariables; i++)
     {
         coef[i]=0.0;
@@ -160,31 +193,49 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
     {
         //printf("Sense: %c\n",lp_sense(lp,i));
         //getchar();
+
         if(lp_sense(lp,i)=='L')
         {
 
             h_cut->typeConstraints[i] = 0;
             lp_row(lp,i,idx,coef);
+            rhs = lp_rhs(lp,i);
+
+            tam = 0;
+            for(j=0; j<numberVariables; j++)
+            {
+                if(coef[j]!=0.0)
+                {
+                    v_aux[tam] = coef[j];
+                    //printf("%d \t",v_aux[tam]);
+                    tam++;
+                }
+            }
+            v_aux[tam] = rhs;
+            //tam++;
+            int mdc = CutP_maxDivisorCommonVector(v_aux, tam);
+            printf("Mdc: %d\t",mdc);
             for(j=0; j<numberVariables; j++)
             {
                 if(coef[j]!=0.0)
                 {
 
-                    //printf("Coef: %f idx: %d \t ", coef[j],idx[j]);
-                    h_cut->Coefficients[aux] = coef[j];
+                    //      printf("Coef: %f idx: %d \t ", coef[j],idx[j]);
+                    h_cut->Coefficients[aux] = coef[j]/mdc;
                     h_cut->Elements[aux] = idx[j];
                     aux++;
                 }
                 coef[j] = 0.0;
                 idx[j] = 0;
             }
-            //printf("\n");
+
+            // printf("\n rhs: %f\n",rhs);
 
             h_cut->ElementsConstraints[contador+1] = aux;
-            rhs = lp_rhs(lp,i);
-            h_cut->rightSide[contador] = rhs;
+            h_cut->rightSide[contador] = rhs/mdc;
             contador++;
         }
+
     }
     //printf("contador: %d aux: %d const: %d cont: %d\n",contador,aux,h_cut->numberConstrains, h_cut->cont);
 
@@ -200,6 +251,111 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
     //free(xTemp);
     return h_cut;
 }
+
+
+void quicksortCof(int *values, int *idc, int began, int end)
+{
+	int i, j, pivo, aux;
+	i = began;
+	j = end-1;
+	pivo = values[(began + end) / 2];
+	while(i <= j)
+	{
+		while(values[i] > pivo && i < end)
+		{
+			i++;
+		}
+		while(values[j] < pivo && j > began)
+		{
+			j--;
+		}
+		if(i <= j)
+		{
+			aux = values[i];
+			values[i] = values[j];
+			values[j] = aux;
+
+			aux = idc[i];
+			idc[i] = idc[j];
+			idc[j] = aux;
+
+			i++;
+			j--;
+		}
+	}
+	if(j > began)
+		quicksortCof(values, idc,  began, j+1);
+	if(i < end)
+		quicksortCof(values, idc, i, end);
+}
+
+
+
+
+void SortByCoefficients(Cut_gpu *h_cut){
+    int i = 0, j = 0;
+    int el;
+    for(i = 0; i < h_cut->numberConstrains; i++){
+             quicksortCof(h_cut->Coefficients, h_cut->Elements, h_cut->ElementsConstraints[i], h_cut->ElementsConstraints[i+1]);
+    }
+}
+
+
+Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector, int precision)
+{
+    int i,j;
+    convertVector = (int*)(malloc(sizeof(int)*h_cut->cont));
+    int qntX = h_cut->numberVariables;
+    int qntNegative = 0, rhs = 0;
+    int el = 0;
+    for(i=0; i< h_cut->cont; i++)
+    {
+        if(h_cut->Coefficients[i]<0)
+        {
+            qntNegative++;
+        }
+    }
+    qntNegative += h_cut->numberVariables;
+    Cut_gpu *Cut_new = AllocationStructCut(h_cut->cont,h_cut->numberConstrains, qntNegative);
+
+    for(i=0;i<h_cut->numberVariables;i++){
+        Cut_new->xAsterisc[i] = h_cut->xAsterisc[i];
+    }
+
+
+    for(i = 0; i<h_cut->numberConstrains; i++)
+    {
+        rhs = h_cut->rightSide[i];
+        for(j= h_cut->ElementsConstraints[i]; j<h_cut->ElementsConstraints[i+1]; j++)
+        {
+            if(h_cut->Coefficients[j]<0)
+            {
+                Cut_new->Coefficients[j] = h_cut->Coefficients[j]*(-1);
+                rhs += Cut_new->Coefficients[j];
+                Cut_new->Elements[j] = qntX;
+                el = h_cut->Elements[j];
+                Cut_new->xAsterisc[qntX] = precision - h_cut->xAsterisc[el];
+                convertVector[j] = h_cut->Elements[j];
+                qntX++;
+            }
+            else
+            {
+                Cut_new->Coefficients[j] = h_cut->Coefficients[j];
+                Cut_new->Elements[j] = h_cut->Elements[j];
+                convertVector[j] = 0 ;
+            }
+        }
+        Cut_new->rightSide[i] = rhs;
+        Cut_new->ElementsConstraints[i] = h_cut->ElementsConstraints[i];
+        Cut_new->typeConstraints[i] = h_cut->typeConstraints[i];
+    }
+    Cut_new->ElementsConstraints[i] = h_cut->ElementsConstraints[i];
+    SortByCoefficients(Cut_new);
+    free(h_cut);
+    return Cut_new;
+}
+
+
 
 int returnPos(int *v,int n, int x)
 {

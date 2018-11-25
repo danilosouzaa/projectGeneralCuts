@@ -56,12 +56,12 @@ solutionGpu* createGPUsolution2(solutionGpu* h_solution, Cut_gpu* h_cut,int numb
 }
 
 
-__global__ void runGPUR1(Cut_gpu *d_cut, solutionGpu *d_solution, unsigned int *seed, curandState_t* states, int nThreads, int precision)
+__global__ void runGPUR1(Cut_gpu *d_cut, solutionGpu *d_solution, int nThreads, int precision)
 {
     int term = threadIdx.x + blockIdx.x*nThreads;
     __shared__ int *constraints;
     __shared__ int pos;
-    curand_init(seed[term],term,0,&states[term]);
+    //curand_init(seed[term],term,0,&states[term]);
     int violation = 0,i,j;
     if(threadIdx.x == 0)
     {
@@ -305,7 +305,113 @@ __global__ void runGPUR1_aleatory(Cut_gpu *d_cut, solutionGpu *d_solution, unsig
     }
 }
 
+__global__ void runGPUCover(Cover_gpu *d_cover, int *d_solution,int nThreads, int nRuns, int nRunsPerThread)
+{
+    int term = threadIdx.x +blockIdx.x*nThreads;
+    int i, j, counter = 0, aux = 0;
+    float bdc = 0.0, b = 0 , a_barra;
+    //int *qnt = (int*)malloc(sizeof(int)*nRunsPerThread);
+    int qnt;
+    //memset(aux,0,sizeof(int)*nRunsPerThread);
 
+    for(j = term*nRunsPerThread; j < (term+1)*nRunsPerThread; j++)
+    {
+        if(j<nRuns)
+        {
+            counter = 0;
+            qnt = 0;
+            for(i = d_cover->ElementsConstraints[j]; i< d_cover->ElementsConstraints[j+1]; i++)
+            {
+                counter += d_cover->Coefficients[i];
+                d_solution[i] = 1;
+                qnt++;
+                if(counter > d_cover->rightSide[j])
+                {
+                    aux = 1;
+                    break;
+                }
+            }
+
+            if(aux == 1)
+            {
+                b = d_cover->rightSide[j];
+                bdc = (float)d_cover->rightSide[j] / (float)qnt;
+                int sz = qnt;
+                for(i = d_cover->ElementsConstraints[j]; i < d_cover->ElementsConstraints[j] + qnt; i++ )
+                {
+                    if(d_cover->Coefficients[i]<bdc){
+                        b -= d_cover->Coefficients[i];
+                        sz--;
+                    }
+                }
+                a_barra = b / (float)sz;
+                int *c_menus = (int*)malloc(sizeof(int)*qnt);
+                int *c_mais = (int*)malloc(sizeof(int)*qnt);
+                float *S_barra = (float*)malloc(sizeof(float)*(qnt+1) );
+                int id1 = 0 ,id2 = 0, id3 = 0;
+                for(i = d_cover->ElementsConstraints[j]; i < d_cover->ElementsConstraints[j] + qnt; i++ ){
+                    if(d_cover->Coefficients[i]<a_barra){
+                        c_menus[id1] = i;
+                        id1++;
+                    }else{
+                        c_mais[id2] = i;
+                        id2++;
+                    }
+                }
+                S_barra[id3] = 0;
+                id3++;
+                for(i = 0; i<id2;i++){
+                    S_barra[id3] = S_barra[id3-1] + a_barra;
+                    id3++;
+                }
+                for(i = 0; i<id1;i++){
+                    S_barra[id3] = S_barra[id3-1] + d_cover->Coefficients[ c_menus[i] ];
+                    id3++;
+                }
+                int ini = 0,fim = 0, meio = 0;
+
+                for(i = d_cover->ElementsConstraints[j]; i < d_cover->ElementsConstraints[j+1]; i++ ){
+                    ini  = 0;
+                    fim  = id3 - 1;
+                    while(ini<=fim){
+                        meio = (ini + fim)/2;
+                        if( (d_cover->Coefficients[i] <= S_barra[meio])&&(d_cover->Coefficients[i]>S_barra[meio-1]) ){
+                           d_cover->Coefficients[i] = meio-1;
+                           break;
+                        }else{
+                            if(d_cover->Coefficients[i]<S_barra[meio]){
+                                fim = meio - 1;
+                            }
+                            if(d_cover->Coefficients[i]>S_barra[meio]){
+                                ini = meio + 1;
+                            }
+                        }
+                    }
+
+                }
+                for(i=0;i<id1;i++){
+                    d_cover->Coefficients[ c_menus[i] ] = 1;
+                }
+                d_cover->rightSide[j] = qnt - 1;
+
+                if(term == 95){
+                    printf("a_barra = %f b = %d\n",a_barra, d_cover->rightSide[j]);
+                    for(i=0;i<id3;i++){
+                        printf("S(%d) = %f\n", i,S_barra[i]);
+                    }
+
+                }
+
+
+                free(c_menus);
+                free(c_mais);
+                free(S_barra);
+
+            }
+
+        }
+    }
+}
 
 __global__ void runGPUR2(Cut_gpu *d_cut, solutionGpu *d_solution, unsigned int *seed, curandState_t* states, int numberMaxConst, int *setConstraint,int nThreads, int precision, int maxDenominator)
 {
@@ -476,7 +582,8 @@ __global__ void runGPUZerohHalf(Cut_gpu *d_cut, int *d_solution, int nThread,int
     int best_violation = 0;
     int best_number = -1;
     int rhs,el, aux;
-    if(nFinal>=powf(2,sizeGroup)){
+    if(nFinal>=powf(2,sizeGroup))
+    {
         nFinal = powf(2,sizeGroup);
     }
     for(ite = nInitial; ite <= nFinal; ite++)

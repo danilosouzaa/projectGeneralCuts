@@ -2542,6 +2542,49 @@ Cut_gpu* createCutsOfPhaseTwo(Cut_gpu *h_cut, Cut_gpu_aux *cut_aux, solutionGpu 
     return new_h_cut;
 }
 
+Cut_gpu* createCutsCover(Cut_gpu *h_cut, Cover_gpu *h_cover, int *idc_Cover, int nCuts){
+    int i = 0, cont = 0;
+    cont += h_cut->cont;
+    for(i=0;i<h_cover->numberConstraints;i++){
+        if(idc_Cover[i]==1){
+            cont+= h_cover->ElementsConstraints[i+1] - h_cover->ElementsConstraints[i];
+        }
+    }
+    Cut_gpu *h_cut_new = AllocationStructCut(cont, h_cut->numberConstrains+nCuts, h_cut->numberVariables );
+    h_cut_new->ElementsConstraints[0] = 0;
+    for(i = 0; i<h_cut->numberConstrains;i++){
+        h_cut_new->rightSide[i] = h_cut->rightSide[i];
+        h_cut_new->typeConstraints[i] = h_cut->typeConstraints[i];
+        h_cut_new->ElementsConstraints[i+1] = h_cut->ElementsConstraints[i+1];
+    }
+    for(i = 0;i<h_cut->cont;i++){
+        h_cut_new->Elements[i] = h_cut->Elements[i];
+        h_cut_new->Coefficients[i] = h_cut->Coefficients[i];
+    }
+    for(i=0;i<h_cut->numberVariables;i++){
+        h_cut_new->xAsterisc[i] = h_cut->xAsterisc[i];
+    }
+
+    int aux = h_cut->numberConstrains;
+    int j, el, c_aux = h_cut->cont;
+    for(i=0;i<h_cover->numberConstraints;i++){
+        if(idc_Cover[i]==1){
+            h_cut_new->typeConstraints[aux] = LPC_CVGPU;
+            h_cut_new->rightSide[aux] = h_cover->rightSide[i];
+            for( j = h_cover->ElementsConstraints[i];j<h_cover->ElementsConstraints[i+1];j++){
+                    h_cut_new->Elements[c_aux] = h_cut->Elements[j];
+                    h_cut_new->Coefficients[c_aux] = h_cover->Coefficients[j];
+                    c_aux++;
+            }
+            aux++;
+            h_cut_new->ElementsConstraints[aux] = c_aux;
+        }
+    }
+    free(h_cut);
+    return h_cut_new;
+}
+
+
 
 Cut_gpu_aux* reallocCut(Cut_gpu *h_cut,Cut_gpu_aux *h_cut_aux)
 {
