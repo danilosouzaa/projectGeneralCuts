@@ -35,7 +35,7 @@ int* calculateViolation(Cut_gpu *h_cut,int precision){
             vViolation[i] += h_cut->Coefficients[j]*h_cut->xAsterisc[el];
         }
         vViolation[i] = (h_cut->rightSide[i]*precision) - vViolation[i];
-        printf("Violation %d: %d %d\n",i, vViolation[i], h_cut->numberConstrains);
+        //printf("Violation %d: %d %d\n",i, vViolation[i], h_cut->numberConstrains);
 //        if(vViolation[i]<=0)
 //            getchar();
     }
@@ -60,9 +60,9 @@ int* sortPerViolation(int *vViolation, int nConstraints){
         pos[i] = i;
     }
     bubble_sort(vViolation,pos,nConstraints);
-    for(i = 0;i<nConstraints;i++){
-        printf("%d - %d\n",pos[i],vViolation[i]);
-    }
+//    for(i = 0;i<nConstraints;i++){
+//        printf("%d - %d\n",pos[i],vViolation[i]);
+//    }
     return pos;
 }
 
@@ -85,37 +85,38 @@ int main(int argc, const char *argv[])
     lp_read(lp,name);
     Cut_gpu *h_cut = fillStructPerLP(precision, lp);
     int *convertVaribles;
+    int *convertCoef;
     printf("Number Variables antes: %d\n", h_cut->numberVariables);
-    h_cut = removeNegativeCoefficientsAndSort(h_cut,convertVaribles,precision);
-    int *numberVariablesPerConstraints;
-    numberVariablesPerConstraints = contNumberPosible(h_cut);
+    h_cut = removeNegativeCoefficientsAndSort(h_cut,convertVaribles,convertCoef,precision);
+    //int *numberVariablesPerConstraints;
+    //numberVariablesPerConstraints = contNumberPosible(h_cut);
 
     printf("Number Variables depois: %d\n", h_cut->numberVariables);
     printf("Number Constraints: %d\n", h_cut->numberConstrains);
     getchar();
-//    int j = 0;
+//    int j = 0;s
 //    for(j=0;j<h_cut->numberConstrains;j++){
 //        show_contraints(h_cut,j);
 //    }
 //    getchar();
-    int *vViolation = calculateViolation(h_cut,precision);
+    //int *vViolation = calculateViolation(h_cut,precision);
   //  getchar();
-    int *pos = sortPerViolation(vViolation,h_cut->numberConstrains);
-    int *vAux = (int*)malloc(sizeof(int)*szGroup1);
-    int *idxOriginal;
-    int valided;
-    valided  = generateVetorSec(h_cut,vAux,szGroup1);
-    int aux = 0; i=0;
-    do{
-        if(h_cut->rightSide[ pos[i] ]!=0){
-            vAux[aux] = pos[i];
-            aux++;
-        }
-        i++;
-        if(i>=h_cut->numberConstrains){
-            szGroup1 = aux;
-        }
-    }while(aux<szGroup1 );
+    //int *pos = sortPerViolation(vViolation,h_cut->numberConstrains);
+    //int *vAux = (int*)malloc(sizeof(int)*szGroup1);
+    //int *idxOriginal;
+//    int valided;
+//    valided  = generateVetorSec(h_cut,vAux,szGroup1);
+//    int aux = 0; i=0;
+//    do{
+//        if(h_cut->rightSide[ pos[i] ]!=0){
+//            vAux[aux] = pos[i];
+//            aux++;
+//        }
+//        i++;
+//        if(i>=h_cut->numberConstrains){
+//            szGroup1 = aux;
+//        }
+//    }while(aux<szGroup1 );
 //    for(i=0;i<szGroup1;i++){
 //        if(h_cut->rightSide[ pos[aux] ]!=0){
 //            vAux[i] = pos[];
@@ -127,18 +128,21 @@ int main(int argc, const char *argv[])
 //    for(i=0;i<szGroup1;i++){
 //        show_contraints(h_cut,i);
 //    }
-    Cut_gpu *h_cut_group = CreateGroupForVectorNumberConstraints(h_cut,vAux,szGroup1,idxOriginal);
-    for(i=0;i<szGroup1;i++){
-        show_contraints(h_cut_group,i);
-    }
+//    Cut_gpu *h_cut_group = CreateGroupForVectorNumberConstraints(h_cut,vAux,szGroup1,idxOriginal);
+//    for(i=0;i<szGroup1;i++){
+//        show_contraints(h_cut_group,i);
+//    }
     //getchar();
-    int cutIni = h_cut_group->numberConstrains;
+    int cutIni = h_cut->numberConstrains;
     int nBlock = 2, nThread = 512;
-    h_cut_group = initial_runGPU(h_cut_group,precision,nThread,nBlock,szGroup1);
-    h_cut_group = generateCutsCover(h_cut,10,10);
+    //h_cut_group = initial_runGPU(h_cut_group,precision,nThread,nBlock,szGroup1);
+    h_cut = generateCutsCover(h_cut,10,10);
+
+    //h_cut = returnVariablesOriginals();
+
    //h_cut_group = zeroHalf_runGPU(h_cut_group,szGroup1,precision,nThread,nBlock);
 
-    printf("numero inicial: %d, depois : %d\n",cutIni, h_cut_group->numberConstrains);
+    printf("numero inicial: %d, depois : %d\n",cutIni, h_cut->numberConstrains);
    //s h_cut_group =
     //getchar();
     //lp_write_lp(lp,"testes.lp");
@@ -148,13 +152,14 @@ int main(int argc, const char *argv[])
 //    lp_set_max_seconds(lp,60);
 //    lp_optimize(lp);
 //    lp_free(&lp);
-    free(h_cut_group);
     free(h_cut);
+    free(convertVaribles);
+    free(convertCoef);
     lp_free( &lp );
     lp_close_env();
-    free(idxOriginal);
-    free(vAux);
-    free(vViolation);
-    free(pos);
+   // free(idxOriginal);
+   // free(vAux);
+   // free(vViolation);
+   // free(pos);
     return 0;
 }

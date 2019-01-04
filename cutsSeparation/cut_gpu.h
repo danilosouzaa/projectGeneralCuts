@@ -102,7 +102,9 @@ void setParameters_ccg(parameters_ccg *parCCG, int mode);
 
 int generateVetorSec(Cut_gpu *h_cut, int *vAux, int sz);
 
-Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector, int precision);
+//Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector, int precision);
+
+Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector,int *convertCoef, int precision);
 
 EXTERN_C_END
 

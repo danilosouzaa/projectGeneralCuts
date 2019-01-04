@@ -658,7 +658,6 @@ Cut_gpu* generateCutsCover(Cut_gpu *h_cut, int nBlocks, int nThreads){
         runGPUCover<<<nBlocks,nThreads>>>(d_cover,d_solutionCover,nThreads,nRuns,nRunsPerThread);
         //runGPUZerohHalf<<<nBlocks,nThreads>>>(d_cut, d_solutionZHalf, nThreads, sizeGroup, nBlocks, precision);
         gpuDeviceSynchronize();
-        getchar();
         gpuMemcpy(h_solutionCover, d_solutionCover, sizeof(int)*(h_cover->cont), cudaMemcpyDeviceToHost);
 
         gpuMemcpy(h_cover, d_cover, size_cover, cudaMemcpyDeviceToHost);
@@ -703,6 +702,8 @@ Cut_gpu* generateCutsCover(Cut_gpu *h_cut, int nBlocks, int nThreads){
         free(idc_cover);
         free(h_solutionCover);
         free(h_cover);
+    }else{
+        printf("BUG GPU!!!");
     }
     return h_cut;
 }

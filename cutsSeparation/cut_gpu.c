@@ -214,7 +214,7 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
             v_aux[tam] = rhs;
             //tam++;
             int mdc = CutP_maxDivisorCommonVector(v_aux, tam);
-            printf("Mdc: %d\t",mdc);
+            //printf("Mdc: %d\t",mdc);
             for(j=0; j<numberVariables; j++)
             {
                 if(coef[j]!=0.0)
@@ -301,10 +301,11 @@ void SortByCoefficients(Cut_gpu *h_cut){
 }
 
 
-Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector, int precision)
+Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector,int *convertCoef, int precision)
 {
     int i,j;
     convertVector = (int*)(malloc(sizeof(int)*h_cut->cont));
+    convertCoef = (int*)(malloc(sizeof(int)*h_cut->cont));
     int qntX = h_cut->numberVariables;
     int qntNegative = 0, rhs = 0;
     int el = 0;
@@ -336,6 +337,7 @@ Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector, i
                 el = h_cut->Elements[j];
                 Cut_new->xAsterisc[qntX] = precision - h_cut->xAsterisc[el];
                 convertVector[j] = h_cut->Elements[j];
+                convertCoef[j] = Cut_new->Coefficients[j];
                 qntX++;
             }
             else
@@ -343,6 +345,7 @@ Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector, i
                 Cut_new->Coefficients[j] = h_cut->Coefficients[j];
                 Cut_new->Elements[j] = h_cut->Elements[j];
                 convertVector[j] = 0 ;
+                convertCoef[j] = 0;
             }
         }
         Cut_new->rightSide[i] = rhs;
@@ -356,6 +359,12 @@ Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector, i
 }
 
 
+Cut_gpu *returnVariablesOriginals(Cut_gpu *h_cut, int *convertVector, int *convertCoef, int precision ){
+
+
+
+
+}
 
 int returnPos(int *v,int n, int x)
 {
