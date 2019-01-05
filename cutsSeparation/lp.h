@@ -46,6 +46,7 @@
 #define LPC_CGGPU       13
 #define LPC_CGGPUR2      14
 #define LPC_CVGPU       15
+#define LPC_CCOVER      16
 /* constraint types, used when querying model */
 #define CONS_PARTITIONING  0
 #define CONS_PACKING       1

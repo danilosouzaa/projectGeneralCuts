@@ -84,16 +84,16 @@ int main(int argc, const char *argv[])
     LinearProgram *lp = lp_create();
     lp_read(lp,name);
     Cut_gpu *h_cut = fillStructPerLP(precision, lp);
-    int *convertVaribles;
-    int *convertCoef;
+    int *convertVaribles = (int*)malloc(sizeof(int)*h_cut->cont);
+    int numberVariablesInitial = h_cut->numberVariables;
+   // int *convertCoef;
     printf("Number Variables antes: %d\n", h_cut->numberVariables);
-    h_cut = removeNegativeCoefficientsAndSort(h_cut,convertVaribles,convertCoef,precision);
+    h_cut = removeNegativeCoefficientsAndSort(h_cut,convertVaribles,precision);
     //int *numberVariablesPerConstraints;
     //numberVariablesPerConstraints = contNumberPosible(h_cut);
 
     printf("Number Variables depois: %d\n", h_cut->numberVariables);
     printf("Number Constraints: %d\n", h_cut->numberConstrains);
-    getchar();
 //    int j = 0;s
 //    for(j=0;j<h_cut->numberConstrains;j++){
 //        show_contraints(h_cut,j);
@@ -135,17 +135,24 @@ int main(int argc, const char *argv[])
     //getchar();
     int cutIni = h_cut->numberConstrains;
     int nBlock = 2, nThread = 512;
+
     //h_cut_group = initial_runGPU(h_cut_group,precision,nThread,nBlock,szGroup1);
     h_cut = generateCutsCover(h_cut,10,10);
 
-    //h_cut = returnVariablesOriginals();
 
+    h_cut = returnVariablesOriginals(h_cut,convertVaribles,precision,numberVariablesInitial);
+    printf("numero inicial: %d, depois : %d\n",cutIni, h_cut->numberConstrains);
+    insertConstraintsLP(lp,h_cut,cutIni,0);
+
+
+    //h_cut = returnVariablesOriginals();
    //h_cut_group = zeroHalf_runGPU(h_cut_group,szGroup1,precision,nThread,nBlock);
 
-    printf("numero inicial: %d, depois : %d\n",cutIni, h_cut->numberConstrains);
+
    //s h_cut_group =
     //getchar();
-    //lp_write_lp(lp,"testes.lp");
+    lp_write_lp(lp,"testes.lp");
+
     lp_set_max_seconds( lp, 30 );
     lp_optimize( lp );
 
@@ -154,7 +161,7 @@ int main(int argc, const char *argv[])
 //    lp_free(&lp);
     free(h_cut);
     free(convertVaribles);
-    free(convertCoef);
+    //free(convertCoef);
     lp_free( &lp );
     lp_close_env();
    // free(idxOriginal);
