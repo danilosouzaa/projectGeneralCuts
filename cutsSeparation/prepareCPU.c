@@ -11,7 +11,7 @@ void runCPUR1(Cut_gpu *h_cut, solutionGpu *h_solution, int precision, double tim
     for(i=0; i<h_cut->numberConstrains; i++)
     {
         //if((h_cut->typeConstraints[i] == RES_RR) || (h_cut->typeConstraints[i] == LPC_RR) || (h_cut->typeConstraints[i] == RES_NR) || (h_cut->typeConstraints[i] == RES_MODE) || (h_cut->typeConstraints[i] == RES_CONFCL)  )
-       // {
+        // {
         if((h_cut->typeConstraints[i] == RES_RR) )
         {
             constraints[pos] = i;
@@ -20,125 +20,125 @@ void runCPUR1(Cut_gpu *h_cut, solutionGpu *h_solution, int precision, double tim
         }
     }
     int k;
-  //  #pragma omp parallel
-   // {
-     //   #pragma omp for
-        for(k = 0; k<pos; k++)
+    //  #pragma omp parallel
+    // {
+    //   #pragma omp for
+    for(k = 0; k<pos; k++)
+    {
+        int res = constraints[k];
+        int sz_u = h_cut->ElementsConstraints[res+1] - h_cut->ElementsConstraints[res] + 1;
+        int *u = (int*)malloc(sizeof(int)* sz_u );
+        int n1=-1, d1=-1,el, rhs, aux,value_tes;
+        aux = 0;
+
+        for(j = h_cut->ElementsConstraints[ res ] ; j < h_cut->ElementsConstraints[ res +1 ]; j++)
         {
-            int res = constraints[k];
-            int sz_u = h_cut->ElementsConstraints[res+1] - h_cut->ElementsConstraints[res] + 1;
-            int *u = (int*)malloc(sizeof(int)* sz_u );
-            int n1=-1, d1=-1,el, rhs, aux,value_tes;
-            aux = 0;
+            u[aux] = h_cut->Coefficients[j];
+            aux++;
+        }
+        u[sz_u - 1] = h_cut->rightSide[res];
 
-            for(j = h_cut->ElementsConstraints[ res ] ; j < h_cut->ElementsConstraints[ res +1 ]; j++)
+        value_tes = sz_u;
+        for( i = 0; i < sz_u; i++ )
+        {
+            for( j = 0; j < sz_u; j++ ) // sempre 1 elemento à frente
             {
-                u[aux] = h_cut->Coefficients[j];
-                aux++;
-            }
-            u[sz_u - 1] = h_cut->rightSide[res];
+                // se o (x > (x+1)) então o x passa pra frente (ordem crescente)
 
-            value_tes = sz_u;
-            for( i = 0; i < sz_u; i++ )
-            {
-                for( j = 0; j < sz_u; j++ ) // sempre 1 elemento à frente
+
+                if((u[i]!=0)&&(u[j]!=0)&&(i!=j))
                 {
-                    // se o (x > (x+1)) então o x passa pra frente (ordem crescente)
-
-
-                    if((u[i]!=0)&&(u[j]!=0)&&(i!=j))
+                    if(u[i]%u[j]==0)
                     {
-                        if(u[i]%u[j]==0)
-                        {
-                            u[j]=0;
-                            value_tes--;
-                        }
-                        if(u[j]%u[i]==0)
-                        {
-                            u[i]=0;
-                            value_tes--;
-                        }
+                        u[j]=0;
+                        value_tes--;
                     }
-                    if (( u[i] < u[j] )&&(j>i))
+                    if(u[j]%u[i]==0)
                     {
-                        aux = u[i];
-                        u[i] = u[j];
-                        u[j] = aux;
+                        u[i]=0;
+                        value_tes--;
                     }
                 }
-            }
-            sz_u = value_tes;
-
-            int nBest=-1, dBest=-1, violation_best=0;
-            for(j = 0 ; j < sz_u; j++)
-            {
-                d1 = u[j];
-                n1 = 1;
-                while(n1<d1)
+                if (( u[i] < u[j] )&&(j>i))
                 {
-                    rhs = 0;
-                    violation = 0;
-                    value_tes = 0;
-                    rhs = h_cut->rightSide[ res ]* n1;
-                    if(rhs%d1 !=0)
-                    {
+                    aux = u[i];
+                    u[i] = u[j];
+                    u[j] = aux;
+                }
+            }
+        }
+        sz_u = value_tes;
 
-                        for(i = h_cut->ElementsConstraints[ res ]; i<h_cut->ElementsConstraints[ res + 1 ]; i++)
+        int nBest=-1, dBest=-1, violation_best=0;
+        for(j = 0 ; j < sz_u; j++)
+        {
+            d1 = u[j];
+            n1 = 1;
+            while(n1<d1)
+            {
+                rhs = 0;
+                violation = 0;
+                value_tes = 0;
+                rhs = h_cut->rightSide[ res ]* n1;
+                if(rhs%d1 !=0)
+                {
+
+                    for(i = h_cut->ElementsConstraints[ res ]; i<h_cut->ElementsConstraints[ res + 1 ]; i++)
+                    {
+                        el = h_cut->Elements[i];
+                        aux = h_cut->Coefficients[i] * n1;
+                        if( ((aux>0&&d1<0)||(aux<0&&d1>0))&&(aux%d1!=0))
                         {
-                            el = h_cut->Elements[i];
-                            aux = h_cut->Coefficients[i] * n1;
-                            if( ((aux>0&&d1<0)||(aux<0&&d1>0))&&(aux%d1!=0))
-                            {
-                                aux = (aux/d1) -1;
-                            }
-                            else
-                            {
-                                aux = aux/d1;
-                            }
-                            //aux = aux< 0 ? (aux/d1) - 1 : aux/d1;
-                            value_tes += aux*h_cut->xAsterisc[el];
-                        }
-                        //rhs = h_cut->rightSide[ res ]* n1;
-                        if( ((rhs>0&&d1<0)||(rhs<0&&d1>0))&&(rhs%d1!=0))
-                        {
-                            rhs = (rhs/d1) -1;
+                            aux = (aux/d1) -1;
                         }
                         else
                         {
-                            rhs = rhs/d1;
+                            aux = aux/d1;
                         }
-
-                        if(value_tes>rhs*precision)
-                        {
-                            violation = value_tes - (rhs*precision);
-                            if(violation>violation_best)
-                            {
-                                violation_best = violation;
-                                nBest=n1;
-                                dBest=d1;
-                            }
-                        }
-
+                        //aux = aux< 0 ? (aux/d1) - 1 : aux/d1;
+                        value_tes += aux*h_cut->xAsterisc[el];
                     }
-                    n1++;
-                }
-            }
+                    //rhs = h_cut->rightSide[ res ]* n1;
+                    if( ((rhs>0&&d1<0)||(rhs<0&&d1>0))&&(rhs%d1!=0))
+                    {
+                        rhs = (rhs/d1) -1;
+                    }
+                    else
+                    {
+                        rhs = rhs/d1;
+                    }
 
-            if(violation_best!=0)
-            {
-                h_solution->SConst[k] = res;
-                h_solution->SMult[k] = nBest;
-                h_solution->SPAux[k] = dBest;
+                    if(value_tes>rhs*precision)
+                    {
+                        violation = value_tes - (rhs*precision);
+                        if(violation>violation_best)
+                        {
+                            violation_best = violation;
+                            nBest=n1;
+                            dBest=d1;
+                        }
+                    }
+
+                }
+                n1++;
             }
-            else
-            {
-                h_solution->SConst[k] = -1;
-                h_solution->SMult[k] = -1;
-                h_solution->SPAux[k] = -1;
-            }
-            free(u);
         }
-  //  }
+
+        if(violation_best!=0)
+        {
+            h_solution->SConst[k] = res;
+            h_solution->SMult[k] = nBest;
+            h_solution->SPAux[k] = dBest;
+        }
+        else
+        {
+            h_solution->SConst[k] = -1;
+            h_solution->SMult[k] = -1;
+            h_solution->SPAux[k] = -1;
+        }
+        free(u);
+    }
+    //  }
     free(constraints);
 }
 
@@ -154,7 +154,7 @@ Cut_gpu* initial_runCPU(Cut_gpu *h_cut, int maxDenominator, int precision, doubl
     for(i = 0; i<h_cut->numberConstrains; i++)
     {
 
-       // if((h_cut->typeConstraints[i] == RES_RR) || (h_cut->typeConstraints[i] == LPC_RR) || (h_cut->typeConstraints[i] == RES_NR) || (h_cut->typeConstraints[i] == RES_MODE) || (h_cut->typeConstraints[i] == RES_CONFCL)  )
+        // if((h_cut->typeConstraints[i] == RES_RR) || (h_cut->typeConstraints[i] == LPC_RR) || (h_cut->typeConstraints[i] == RES_NR) || (h_cut->typeConstraints[i] == RES_MODE) || (h_cut->typeConstraints[i] == RES_CONFCL)  )
         if((h_cut->typeConstraints[i] == RES_RR) )
         {
             numberC++;
@@ -189,7 +189,7 @@ Cut_gpu* initial_runCPU(Cut_gpu *h_cut, int maxDenominator, int precision, doubl
     }
     else
     {
-       // printf("No cuts generate\n");
+        // printf("No cuts generate\n");
         free(h_solution_r1);
         return h_cut;
     }
@@ -226,138 +226,192 @@ void runCPUR2(Cut_gpu *h_cut, solutionGpu *h_solution, int numberMaxConst, int *
 //
 //    }
 
-  //  #pragma omp parallel
-   // {
-      //  #pragma omp for
-        for(k=0; k<nRuns; k++)
+    //  #pragma omp parallel
+    // {
+    //  #pragma omp for
+    for(k=0; k<nRuns; k++)
+    {
+
+        int mult_1, mult_2, rest_a,rest_b, i, j, el, rhs1, rhs2, value_tes, violation = 0, aux, n1_best = -1, n2_best = -1, d1_best = -1, qnt_1, d2_best=-1;//, cont=0;
+        // double timeCurrent = omp_get_wtime();
+        int Numerator[20];
+        int Denominator[20];
+        int *Coef = (int*)malloc(sizeof(int)*(h_cut->numberVariables));
+        int *Coef2 = (int*)malloc(sizeof(int)*(h_cut->numberVariables));
+
+        violation = 0;
+        n1_best = -1;
+        n2_best = -1;
+        d1_best = -1;
+        d2_best = -1;
+        for(i=0; i<20; i++)
         {
-
-            int mult_1, mult_2, rest_a,rest_b, i, j, el, rhs1, rhs2, value_tes, violation = 0, aux, n1_best = -1, n2_best = -1, d1_best = -1, qnt_1, d2_best=-1;//, cont=0;
-            // double timeCurrent = omp_get_wtime();
-            int Numerator[20];
-            int Denominator[20];
-            int *Coef = (int*)malloc(sizeof(int)*(h_cut->numberVariables));
-            int *Coef2 = (int*)malloc(sizeof(int)*(h_cut->numberVariables));
-
-            violation = 0;
-            n1_best = -1;
-            n2_best = -1;
-            d1_best = -1;
-            d2_best = -1;
-            for(i=0; i<20; i++)
+            Denominator[i]= rand()%maxDenominator + 2;
+            Numerator[i] = rand()%(Denominator[i]-1);
+        }
+        for(mult_1=0; mult_1<20; mult_1++)
+        {
+            memset(Coef,0,sizeof(int)*h_cut->numberVariables);
+            rhs1 = 0;
+            for(rest_a = 0; rest_a< numberMaxConst; rest_a++)
             {
-                Denominator[i]= rand()%maxDenominator + 2;
-                Numerator[i] = rand()%(Denominator[i]-1);
-            }
-            for(mult_1=0; mult_1<20; mult_1++)
-            {
-                memset(Coef,0,sizeof(int)*h_cut->numberVariables);
-                rhs1 = 0;
-                for(rest_a = 0; rest_a< numberMaxConst; rest_a++)
+                for(i=h_cut->ElementsConstraints[ setConstraint[k*numberMaxConst + rest_a] ]; i<h_cut->ElementsConstraints[ setConstraint[k*numberMaxConst + rest_a] + 1]; i++)
                 {
-                    for(i=h_cut->ElementsConstraints[ setConstraint[k*numberMaxConst + rest_a] ]; i<h_cut->ElementsConstraints[ setConstraint[k*numberMaxConst + rest_a] + 1]; i++)
-                    {
 
-                        el = h_cut->Elements[i];
-                        Coef[el] += h_cut->Coefficients[i] * Numerator[mult_1];
-                    }
-                    rhs1 += h_cut->rightSide[ setConstraint[k*numberMaxConst+rest_a] ] * Numerator[mult_1];
-                    for(mult_2 = 0; mult_2<20; mult_2++)
+                    el = h_cut->Elements[i];
+                    Coef[el] += h_cut->Coefficients[i] * Numerator[mult_1];
+                }
+                rhs1 += h_cut->rightSide[ setConstraint[k*numberMaxConst+rest_a] ] * Numerator[mult_1];
+                for(mult_2 = 0; mult_2<20; mult_2++)
+                {
+                    memset(Coef2,0,sizeof(int)*h_cut->numberVariables);
+                    value_tes = 0;
+                    rhs2 = 0;
+                    for(rest_b = rest_a + 1; rest_b<numberMaxConst; rest_b++)
                     {
-                        memset(Coef2,0,sizeof(int)*h_cut->numberVariables);
-                        value_tes = 0;
-                        rhs2 = 0;
-                        for(rest_b = rest_a + 1; rest_b<numberMaxConst; rest_b++)
+                        for(j=h_cut->ElementsConstraints[ setConstraint[k*numberMaxConst + rest_b] ]; j<h_cut->ElementsConstraints[ setConstraint[k*numberMaxConst + rest_b] + 1]; j++)
                         {
-                            for(j=h_cut->ElementsConstraints[ setConstraint[k*numberMaxConst + rest_b] ]; j<h_cut->ElementsConstraints[ setConstraint[k*numberMaxConst + rest_b] + 1]; j++)
-                            {
-                                el = h_cut->Elements[j];
-                                Coef2[el] += h_cut->Coefficients[j] * Numerator[mult_2];
-                            }
-                            rhs2 += h_cut->rightSide[ setConstraint[k*numberMaxConst + rest_b] ]* Numerator[mult_2];
+                            el = h_cut->Elements[j];
+                            Coef2[el] += h_cut->Coefficients[j] * Numerator[mult_2];
                         }
-                        for(j=0; j<h_cut->numberVariables; j++)
+                        rhs2 += h_cut->rightSide[ setConstraint[k*numberMaxConst + rest_b] ]* Numerator[mult_2];
+                    }
+                    for(j=0; j<h_cut->numberVariables; j++)
+                    {
+                        if( (Coef[j]*Denominator[mult_2] + Coef2[j]*Denominator[mult_1])/(Denominator[mult_1]*Denominator[mult_2]) < 0 )
                         {
-                            if( (Coef[j]*Denominator[mult_2] + Coef2[j]*Denominator[mult_1])/(Denominator[mult_1]*Denominator[mult_2]) < 0 )
-                            {
-                                aux = (Coef[j]*Denominator[mult_2] + Coef2[j]*Denominator[mult_1])/(Denominator[mult_1]*Denominator[mult_2]) - 1;
+                            aux = (Coef[j]*Denominator[mult_2] + Coef2[j]*Denominator[mult_1])/(Denominator[mult_1]*Denominator[mult_2]) - 1;
 
-                            }
-                            else
-                            {
-                                aux = (Coef[j]*Denominator[mult_2] + Coef2[j]*Denominator[mult_1])/(Denominator[mult_1]*Denominator[mult_2]);
-                            }
-                            value_tes += aux*h_cut->xAsterisc[j];
+                        }
+                        else
+                        {
+                            aux = (Coef[j]*Denominator[mult_2] + Coef2[j]*Denominator[mult_1])/(Denominator[mult_1]*Denominator[mult_2]);
+                        }
+                        value_tes += aux*h_cut->xAsterisc[j];
 
 
 //                        aux = Coef[j]<0 ? Coef[j]/Denominator[mult_1] - 1 : Coef[j]/Denominator[mult_1];
 //                        value_tes += aux*h_cut->xAsterisc[j];
 //                        aux = Coef2[j]<0 ? Coef2[j]/Denominator[mult_2] - 1 : Coef2[j]/Denominator[mult_2];
 //                        value_tes += aux*h_cut->xAsterisc[j];
-                        }
+                    }
 
-                        if( (rhs1*Denominator[mult_2] + rhs2*Denominator[mult_1])/(Denominator[mult_1]*Denominator[mult_2]) < 0)
-                        {
-                            aux = (rhs1*Denominator[mult_2] + rhs2*Denominator[mult_1])/(Denominator[mult_1]*Denominator[mult_2]) - 1;
-                        }
-                        else
-                        {
-                            aux = (rhs1*Denominator[mult_2] + rhs2*Denominator[mult_1])/(Denominator[mult_1]*Denominator[mult_2]);
-                        }
+                    if( (rhs1*Denominator[mult_2] + rhs2*Denominator[mult_1])/(Denominator[mult_1]*Denominator[mult_2]) < 0)
+                    {
+                        aux = (rhs1*Denominator[mult_2] + rhs2*Denominator[mult_1])/(Denominator[mult_1]*Denominator[mult_2]) - 1;
+                    }
+                    else
+                    {
+                        aux = (rhs1*Denominator[mult_2] + rhs2*Denominator[mult_1])/(Denominator[mult_1]*Denominator[mult_2]);
+                    }
 
 //                    aux = rhs1<0 ? rhs1/Denominator[mult_1]-1 : rhs1/Denominator[mult_1];
 //                    aux +=  rhs2<0 ? rhs2/Denominator[mult_2]-1 : rhs2/Denominator[mult_2];
 
 
-                        if((value_tes>aux*precision)&&(value_tes-(aux*precision)>violation))
-                        {
-                            violation = value_tes-(aux*precision);
-                            //printf("violation %d\n",violation);
-                            n1_best = Numerator[mult_1];
-                            d1_best = Denominator[mult_1];
-                            n2_best = Numerator[mult_2];
-                            d2_best = Denominator[mult_2];
-                            qnt_1 = rest_a;
-                        }
-
-
+                    if((value_tes>aux*precision)&&(value_tes-(aux*precision)>violation))
+                    {
+                        violation = value_tes-(aux*precision);
+                        //printf("violation %d\n",violation);
+                        n1_best = Numerator[mult_1];
+                        d1_best = Denominator[mult_1];
+                        n2_best = Numerator[mult_2];
+                        d2_best = Denominator[mult_2];
+                        qnt_1 = rest_a;
                     }
-                }
 
+
+                }
             }
 
-            if(violation>0)
-            {
-                for(i=0; i<numberMaxConst; i++)
-                {
-                    h_solution->SConst[i + k*numberMaxConst] = setConstraint[k*numberMaxConst + i];//CPU ja vai ter
-                }
-
-                h_solution->SPAux[k] = qnt_1;
-                h_solution->SMult[0 + k*4] = n1_best;
-                h_solution->SMult[1 + k*4] = d1_best;
-                h_solution->SMult[2 + k*4] = n2_best;
-                h_solution->SMult[3 + k*4] = d2_best;
-
-            }
-            else
-            {
-                for(i=0; i<numberMaxConst; i++)
-                {
-                    h_solution->SConst[i + k*numberMaxConst] = -1;
-                }
-                h_solution->SPAux[k] = 0;
-                h_solution->SMult[0 + k*4] = -1;
-                h_solution->SMult[1 + k*4] = -1;
-                h_solution->SMult[2 + k*4] = -1;
-                h_solution->SMult[3 + k*4] = -1;
-            }
-
-            free(Coef);
-            free(Coef2);
         }
-   // }
+
+        if(violation>0)
+        {
+            for(i=0; i<numberMaxConst; i++)
+            {
+                h_solution->SConst[i + k*numberMaxConst] = setConstraint[k*numberMaxConst + i];//CPU ja vai ter
+            }
+
+            h_solution->SPAux[k] = qnt_1;
+            h_solution->SMult[0 + k*4] = n1_best;
+            h_solution->SMult[1 + k*4] = d1_best;
+            h_solution->SMult[2 + k*4] = n2_best;
+            h_solution->SMult[3 + k*4] = d2_best;
+
+        }
+        else
+        {
+            for(i=0; i<numberMaxConst; i++)
+            {
+                h_solution->SConst[i + k*numberMaxConst] = -1;
+            }
+            h_solution->SPAux[k] = 0;
+            h_solution->SMult[0 + k*4] = -1;
+            h_solution->SMult[1 + k*4] = -1;
+            h_solution->SMult[2 + k*4] = -1;
+            h_solution->SMult[3 + k*4] = -1;
+        }
+
+        free(Coef);
+        free(Coef2);
+    }
+    // }
 }
+
+int createSolutionsInitial(int *h_Solution, int sz)
+{
+    struct timeval time;
+    gettimeofday(&time,NULL);
+    srand((time.tv_sec * 1000) + (time.tv_usec / 1000));
+    int i;
+    for(i = ; i<sz;i++){
+        printf("%d", rand());
+    }
+
+
+}
+
+Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread)
+{
+    Cover_gpu *h_cover = CopyCutToCover(h_cut);
+    int i, j, k ;
+    int counter, qnt, aux = 0;
+    int *h_solution = (int*)malloc(sizeof(int)*h_cover->cont);
+    for(i = 0; i < h_cover->numberConstraints; i++)
+    {
+        for(j = 0; j< qnt_Cover_per_Thread; j++)
+        {
+            counter = 0;
+            qnt = 0;
+            aux = 0;
+            for(k = h_cover->ElementsConstraints[i]; k < h_cover->ElementsConstraints[i+1]; k++)
+            {
+                counter += h_cover->Coefficients[k];
+                d_solution[k] = 1;
+                qnt++;
+                if(counter> h_cover->rightSide)
+                {
+                    aux = 1;
+                    break;
+                }
+            }
+
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+}
+
 
 
 Cut_gpu* second_phase_runCPU(Cut_gpu *h_cut, int numberMaxConst, int nRuns, int maxDenominator, int precision, int szR, double timeLeft)

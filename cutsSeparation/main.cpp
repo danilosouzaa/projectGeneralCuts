@@ -143,7 +143,8 @@ int main(int argc, const char *argv[])
     h_cut = returnVariablesOriginals(h_cut,convertVaribles,precision,numberVariablesInitial);
     printf("numero inicial: %d, depois : %d\n",cutIni, h_cut->numberConstrains);
     insertConstraintsLP(lp,h_cut,cutIni,0);
-
+    int *h_solution;
+    createSolutionsInitial(h_solution,10);
 
     //h_cut = returnVariablesOriginals();
    //h_cut_group = zeroHalf_runGPU(h_cut_group,szGroup1,precision,nThread,nBlock);
