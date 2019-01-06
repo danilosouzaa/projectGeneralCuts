@@ -365,7 +365,7 @@ int createSolutionsInitial(int *h_Solution, int sz)
     gettimeofday(&time,NULL);
     srand((time.tv_sec * 1000) + (time.tv_usec / 1000));
     int i;
-    for(i = ; i<sz;i++){
+    for(i = 0; i<sz;i++){
         printf("%d", rand());
     }
 
@@ -388,7 +388,7 @@ Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread)
             for(k = h_cover->ElementsConstraints[i]; k < h_cover->ElementsConstraints[i+1]; k++)
             {
                 counter += h_cover->Coefficients[k];
-                d_solution[k] = 1;
+                h_solution[k] = 1;
                 qnt++;
                 if(counter> h_cover->rightSide)
                 {

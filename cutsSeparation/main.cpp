@@ -12,6 +12,7 @@ extern "C"
 	#include "cut_gpu.h"
     #include "solutionGpu.h"
     #include "prepareGpu.h"
+    #include "prepareCPU.h"
 }
 
 /*Pameters
