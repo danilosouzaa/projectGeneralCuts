@@ -359,56 +359,232 @@ void runCPUR2(Cut_gpu *h_cut, solutionGpu *h_solution, int numberMaxConst, int *
     // }
 }
 
-int createSolutionsInitial(int *h_Solution, int sz)
+int createSolutionsInitial(int *h_solution, int sz)
 {
     struct timeval time;
     gettimeofday(&time,NULL);
     srand((time.tv_sec * 1000) + (time.tv_usec / 1000));
     int i;
-    for(i = 0; i<sz;i++){
-        printf("%d", rand());
+    for(i = 0; i<sz; i++)
+    {
+        h_solution[i] = rand()%2;
     }
+
+
+}
+
+int* calcCover(Cover_gpu *h_cover, int *h_solution, int qnt_Cover_per_Thread, int tolerance)
+{
+    int *fillBag = (int*)malloc(sizeof(int)*qnt_Cover_per_Thread*h_cover->numberConstraints);
+    int i,j,k, counter = 0;
+    for(i= 0; i < h_cover->numberConstraints; i++)
+    {
+        for(j = 0; j<qnt_Cover_per_Thread; j++)
+        {
+            counter = 0;
+            for(k = h_cover->ElementsConstraints[i]; k< h_cover->ElementsConstraints[i+1]; k++)
+            {
+                counter += h_cover->Coefficients[k] * h_solution[k + j*h_cover->cont];
+                //printf("%d %d %d\t", h_solution[k+j*h_cover->cont], h_cover->Coefficients[k], counter);
+            }
+            if(counter + tolerance <= h_cover->rightSide[i])
+            {
+                for(k = h_cover->ElementsConstraints[i]; k<h_cover->ElementsConstraints[i+1]; k++)
+                {
+                    if(h_solution[k+j*h_cover->cont]==0)
+                    {
+                        counter += h_cover->Coefficients[k];
+                        h_solution[k+j*h_cover->cont] = 1;
+                        if(counter + tolerance > h_cover->rightSide[i])
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+            fillBag[j + i*qnt_Cover_per_Thread] = counter;
+
+            //printf("Fill bag: %d Capacity bag: %d\n", fillBag[j + i*qnt_Cover_per_Thread], h_cover->rightSide[i]);
+        }
+        //getchar();
+    }
+    //printf("number Constraints: %d qnt %d \n", h_cover->numberConstraints, qnt_Cover_per_Thread);
+    return fillBag;
 
 
 }
 
 Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread)
 {
-    Cover_gpu *h_cover = CopyCutToCover(h_cut);
-    int i, j, k ;
+
+    //Cover_gpu *h_cover_new = AllocationStructCover(h_cover->cont*qnt_Cover_per_Thread,h_cover->numberConstraints*qnt_Cover_per_Thread);
+
+    int i, j, k, w;
+    double b = 0.0, bdc = 0.0, a_barra = 0.0;
     int counter, qnt, aux = 0;
-    int *h_solution = (int*)malloc(sizeof(int)*h_cover->cont);
-    for(i = 0; i < h_cover->numberConstraints; i++)
+    int *h_solution = (int*)malloc(sizeof(int)*h_cut->cont*qnt_Cover_per_Thread);
+    createSolutionsInitial(h_solution,h_cut->cont*qnt_Cover_per_Thread);
+    int *fillBag;
+    int nConstraintsInitial = h_cut->numberConstrains;
+    Cover_gpu *h_cover = CopyCutToCover(h_cut);
+    fillBag = calcCover(h_cover,h_solution,qnt_Cover_per_Thread,0);
+    int contInitial = h_cover->cont;
+    for(j=0; j<qnt_Cover_per_Thread; j++)
     {
-        for(j = 0; j< qnt_Cover_per_Thread; j++)
+
+        for(i=0; i< nConstraintsInitial; i++)
         {
-            counter = 0;
             qnt = 0;
-            aux = 0;
+            int el;
             for(k = h_cover->ElementsConstraints[i]; k < h_cover->ElementsConstraints[i+1]; k++)
             {
-                counter += h_cover->Coefficients[k];
-                h_solution[k] = 1;
-                qnt++;
-                if(counter> h_cover->rightSide)
+                    qnt+=h_solution[k + j*contInitial];
+            }
+            //printf("%d\n",qnt);
+            //getchar();
+            int *n_coef = (int*)malloc(sizeof(int)*qnt);
+            int *n_el = (int*)malloc(sizeof(int)*qnt);
+            qnt = 0;
+            for(k = h_cover->ElementsConstraints[i]; k < h_cover->ElementsConstraints[i+1]; k++)
+            {
+                if(h_solution[k + j*contInitial]==1)
                 {
-                    aux = 1;
-                    break;
+                    n_coef[qnt] = h_cover->Coefficients[k];
+                    n_el[qnt] = k;
+                    qnt++;
                 }
             }
 
+
+
+            b = h_cover->rightSide[i];
+            bdc = (float)h_cover->rightSide[i] / (float)qnt;
+            int sz =  qnt;
+            //int el = h_cover->ElementsConstraints[i];
+            float delta = 0;
+            float phi = (float)fillBag[j + i*qnt_Cover_per_Thread];
+            k = 1;
+            a_barra = (double)n_coef[0];
+            for( w = 1 ; w < qnt; w++ )
+            {
+
+                delta = a_barra - n_coef[w];
+                if((float)k*delta<phi)
+                {
+                    a_barra = n_coef[w];
+                    phi = phi - (float)k*delta;
+                }
+                else
+                {
+                    a_barra = a_barra - (phi/k);
+                    phi = 0;
+                    break;
+                }
+                k++;
+
+            }
+            if(phi>0)
+            {
+                a_barra = b/qnt;
+            }
+            int *c_menus = (int*)malloc(sizeof(int)*qnt);
+            int *c_mais = (int*)malloc(sizeof(int)*qnt);
+            float *S_barra = (float*)malloc(sizeof(float)*(qnt+1) );
+            int id1 = 0,id2 = 0, id3 = 0;
+            for(w = 0; w < qnt; w++ )
+            {
+                if((float)n_coef[w] <= a_barra)
+                {
+                    c_menus[id1] = w;
+                    id1++;
+                }
+                else
+                {
+                    c_mais[id2] = w;
+                    id2++;
+                }
+            }
+            S_barra[id3] = 0;
+            id3++;
+            for(w = 0; w<id2; w++)
+            {
+                S_barra[id3] = S_barra[id3-1] + a_barra;
+                id3++;
+            }
+            for(w = 0; w<id1; w++)
+            {
+                S_barra[id3] = S_barra[id3-1] + (float)n_coef[ c_menus[w] ];
+                id3++;
+            }
+            int ini = 0, fim = 0, meio = 0;
+
+
+
+            for(w = h_cover->ElementsConstraints[i]; w<h_cover->ElementsConstraints[i+1]; w++)
+            {
+                ini  = 0;
+                fim  = id3 - 1;
+                while(ini<=fim)
+                {
+                    meio = (ini + fim)/2;
+                    if( (h_cover->Coefficients[w] <= S_barra[meio])&&(h_cover->Coefficients[w]>S_barra[meio-1]) )
+                    {
+                        h_cover->Coefficients[w] = meio-1;
+                        break;
+                    }
+                    else
+                    {
+                        if(h_cover->Coefficients[w]<S_barra[meio])
+                        {
+                            fim = meio - 1;
+                        }
+                        if(h_cover->Coefficients[w]>S_barra[meio])
+                        {
+                            ini = meio + 1;
+                        }
+                    }
+                }
+            }
+            for(w=0; w<id1; w++)
+            {
+                el = n_el[ c_menus[w] ];
+                h_cover->Coefficients[ el ] = 1;
+            }
+            //d_cover->rightSide[j] = qnt - 1;
+
+
+            h_cover->rightSide[i] = qnt - 1;
+            free(c_menus);
+            free(c_mais);
+            free(S_barra);
+            free(n_coef);
+            free(n_el);
+
         }
+        int qnt_cuts_cover = 0;
+        int *idc_cover = (int*)malloc(sizeof(int)*h_cover->numberConstraints);
+        //int j;
+        for(i=0; i<h_cover->numberConstraints; i++)
+        {
+            idc_cover[i] = 0;
+            if(h_cover->rightSide[i] != h_cut->rightSide[i])
+            {
+                idc_cover[i] = 1;
+                qnt_cuts_cover++;
+            }
+        }
+
+
+        h_cut = createCutsCover(h_cut,h_cover,idc_cover,qnt_cuts_cover);
+        free(h_cover);
+        h_cover = CopyCutToCover(h_cut);
+        free(idc_cover);
+
     }
-
-
-
-
-
-
-
-
-
-
+    free(h_solution);
+    free(fillBag);
+    free(h_cover);
+    return h_cut;
 
 }
 

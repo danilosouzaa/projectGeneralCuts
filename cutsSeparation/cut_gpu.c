@@ -327,7 +327,7 @@ int insertConstraintsLP(LinearProgramPtr lp, Cut_gpu *h_cut, int nConstrainsInit
 
         //if(h_cut->typeConstraints[i]==LPC_CCOVER){
         sprintf(name, "CCOVER(%d)",counterCuts);
-        printf("%s\n",name);
+        //printf("%s\n",name);
         counterCuts++;
         lp_add_row(lp,sz,idx,Coef,name,'L',rhs);
         //}
@@ -369,6 +369,8 @@ Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector, i
             if(h_cut->Coefficients[j]<0)
             {
                 Cut_new->Coefficients[j] = h_cut->Coefficients[j]*(-1);
+//                printf("%d %d \t", Cut_new->Coefficients[j], j);
+
                 rhs += Cut_new->Coefficients[j];
                 Cut_new->Elements[j] = qntX;
                 el = h_cut->Elements[j];
@@ -398,7 +400,7 @@ Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector, i
 
 Cut_gpu *returnVariablesOriginals(Cut_gpu *h_cut, int *convertVector, int precision, int nVariablesInitial )
 {
-    Cut_gpu *Cut_new = AllocationStructCut(h_cut->cont,h_cut->numberConstrains, nVariablesInitial);
+    Cut_gpu *Cut_new = AllocationStructCut(h_cut->cont, h_cut->numberConstrains, nVariablesInitial);
     int i, j, rhs = 0, el;
 
     for(i=0; i<nVariablesInitial; i++)
@@ -408,12 +410,15 @@ Cut_gpu *returnVariablesOriginals(Cut_gpu *h_cut, int *convertVector, int precis
     for(i=0; i<h_cut->numberConstrains; i++)
     {
         rhs = h_cut->rightSide[i];
+//        printf("\nrhs %d",rhs);
+//        getchar();
         for(j= h_cut->ElementsConstraints[i]; j<h_cut->ElementsConstraints[i+1]; j++)
         {
             el = h_cut->Elements[j];
             if(el>=nVariablesInitial)
             {
                 Cut_new->Coefficients[j] = h_cut->Coefficients[j]*(-1);
+//                printf("%d %d %d \n",h_cut->Coefficients[j], Cut_new->Coefficients[j], j);
                 rhs -= h_cut->Coefficients[j];
                 Cut_new->Elements[j] = convertVector[el - nVariablesInitial];
                 Cut_new->xAsterisc[ Cut_new->Elements[j] ] = precision - h_cut->xAsterisc[el];
@@ -425,6 +430,7 @@ Cut_gpu *returnVariablesOriginals(Cut_gpu *h_cut, int *convertVector, int precis
 
             }
         }
+//        printf("rhs depois: %d\n",rhs);
         Cut_new->rightSide[i] = rhs;
         Cut_new->ElementsConstraints[i] = h_cut->ElementsConstraints[i];
         Cut_new->typeConstraints[i] = h_cut->typeConstraints[i];

@@ -138,14 +138,14 @@ int main(int argc, const char *argv[])
     int nBlock = 2, nThread = 512;
 
     //h_cut_group = initial_runGPU(h_cut_group,precision,nThread,nBlock,szGroup1);
-    h_cut = generateCutsCover(h_cut,10,10);
+    //h_cut = generateCutsCover(h_cut,10,10);
 
-
+    h_cut = runCPU_Cut_Cover(h_cut,1);
     h_cut = returnVariablesOriginals(h_cut,convertVaribles,precision,numberVariablesInitial);
     printf("numero inicial: %d, depois : %d\n",cutIni, h_cut->numberConstrains);
     insertConstraintsLP(lp,h_cut,cutIni,0);
-    int *h_solution;
-    createSolutionsInitial(h_solution,10);
+    //int *h_solution;
+    //createSolutionsInitial(h_solution,10);
 
     //h_cut = returnVariablesOriginals();
    //h_cut_group = zeroHalf_runGPU(h_cut_group,szGroup1,precision,nThread,nBlock);
@@ -153,9 +153,9 @@ int main(int argc, const char *argv[])
 
    //s h_cut_group =
     //getchar();
-    lp_write_lp(lp,"testes.lp");
+    //lp_write_lp(lp,"testes2.lp");
 
-    lp_set_max_seconds( lp, 30 );
+    //lp_set_max_seconds( lp, 30000 );
     lp_optimize( lp );
 
 //    lp_set_max_seconds(lp,60);
