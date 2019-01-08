@@ -2569,7 +2569,7 @@ Cut_gpu* createCutsCover(Cut_gpu *h_cut, Cover_gpu *h_cover, int *idc_Cover, int
     int j, el, c_aux = h_cut->cont;
     for(i=0;i<h_cover->numberConstraints;i++){
         if(idc_Cover[i]==1){
-            h_cut_new->typeConstraints[aux] = LPC_CVGPU;
+            h_cut_new->typeConstraints[aux] = LPC_CCOVER;
             h_cut_new->rightSide[aux] = h_cover->rightSide[i];
             for( j = h_cover->ElementsConstraints[i];j<h_cover->ElementsConstraints[i+1];j++){
                     h_cut_new->Elements[c_aux] = h_cut->Elements[j];

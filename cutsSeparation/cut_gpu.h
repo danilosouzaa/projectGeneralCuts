@@ -108,7 +108,7 @@ Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector, i
 
 Cut_gpu *returnVariablesOriginals(Cut_gpu *h_cut, int *convertVector, int precision, int nVariablesInitial);
 
-int insertConstraintsLP(LinearProgramPtr lp, Cut_gpu *h_cut, int nConstrainsInitial, int counterCuts);
+int insertConstraintsLP(LinearProgramPtr lp, Cut_gpu *h_cut, int nConstrainsInitial, int *counterCuts);
 
 EXTERN_C_END
 

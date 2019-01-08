@@ -1,0 +1,177 @@
+
+Gurobi 7.5.2 (linux64) logging started Tue Jan  8 06:06:52 2019
+
+Academic license - for non-commercial use only
+
+Gurobi Optimizer version 7.5.2 build v7.5.2rc1 (linux64)
+Copyright (c) 2017, Gurobi Optimization, Inc.
+
+
+ERROR 10003: Unable to open file 'p0033,mps' for input
+
+
+Gurobi 7.5.2 (linux64) logging started Tue Jan  8 06:07:02 2019
+
+Academic license - for non-commercial use only
+
+Gurobi Optimizer version 7.5.2 build v7.5.2rc1 (linux64)
+Copyright (c) 2017, Gurobi Optimization, Inc.
+
+Read MPS format model from file p0033.mps
+Reading time = 0.00 seconds
+P0033: 16 rows, 33 columns, 98 nonzeros
+Optimize a model with 16 rows, 33 columns and 98 nonzeros
+Variable types: 0 continuous, 33 integer (0 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 4e+02]
+  Objective range  [5e+01, 5e+02]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 3e+03]
+Found heuristic solution: objective 3828.0000000
+Presolve removed 5 rows and 14 columns
+Presolve time: 0.00s
+Presolved: 11 rows, 19 columns, 71 nonzeros
+Found heuristic solution: objective 3089.0000000
+Variable types: 0 continuous, 19 integer (16 binary)
+
+Root relaxation: objective 2.839492e+03, 10 iterations, 0.00 seconds
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 2839.49184    0    3 3089.00000 2839.49184  8.08%     -    0s
+     0     0 2941.40000    0    1 3089.00000 2941.40000  4.78%     -    0s
+     0     0 2952.00000    0    1 3089.00000 2952.00000  4.44%     -    0s
+     0     0 2953.32500    0    1 3089.00000 2953.32500  4.39%     -    0s
+     0     0 2966.71429    0    9 3089.00000 2966.71429  3.96%     -    0s
+     0     0 2972.00833    0    5 3089.00000 2972.00833  3.79%     -    0s
+     0     0 2973.17121    0    7 3089.00000 2973.17121  3.75%     -    0s
+     0     0 3023.00259    0    9 3089.00000 3023.00259  2.14%     -    0s
+     0     0 3034.00000    0    7 3089.00000 3034.00000  1.78%     -    0s
+     0     0 3056.75000    0    8 3089.00000 3056.75000  1.04%     -    0s
+     0     0 3057.83333    0   10 3089.00000 3057.83333  1.01%     -    0s
+     0     0 3057.83333    0   10 3089.00000 3057.83333  1.01%     -    0s
+
+Cutting planes:
+  Gomory: 1
+  Clique: 2
+  MIR: 3
+  StrongCG: 2
+
+Explored 1 nodes (39 simplex iterations) in 0.02 seconds
+Thread count was 4 (of 4 available processors)
+
+Solution count 1: 3089 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 3.089000000000e+03, best bound 3.089000000000e+03, gap 0.0000%
+
+Gurobi 7.5.2 (linux64) logging started Tue Jan  8 06:07:54 2019
+
+Academic license - for non-commercial use only
+
+Gurobi Optimizer version 7.5.2 build v7.5.2rc1 (linux64)
+Copyright (c) 2017, Gurobi Optimization, Inc.
+
+Read MPS format model from file p0548.mps
+Reading time = 0.00 seconds
+P0548: 176 rows, 548 columns, 1711 nonzeros
+Optimize a model with 176 rows, 548 columns and 1711 nonzeros
+Variable types: 0 continuous, 548 integer (0 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+04]
+  Objective range  [5e+00, 1e+04]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+04]
+Presolve removed 59 rows and 183 columns
+Presolve time: 0.02s
+Presolved: 117 rows, 365 columns, 1074 nonzeros
+Variable types: 0 continuous, 365 integer (365 binary)
+Found heuristic solution: objective 30762.000000
+
+Root relaxation: objective 7.501192e+03, 156 iterations, 0.00 seconds
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 7501.19182    0   25 30762.0000 7501.19182  75.6%     -    0s
+H    0     0                    20540.000000 7501.19182  63.5%     -    0s
+H    0     0                    9199.0000000 7501.19182  18.5%     -    0s
+H    0     0                    9181.0000000 7501.19182  18.3%     -    0s
+     0     0 8415.67797    0   27 9181.00000 8415.67797  8.34%     -    0s
+     0     0 8600.10177    0   14 9181.00000 8600.10177  6.33%     -    0s
+     0     0 8660.39062    0    5 9181.00000 8660.39062  5.67%     -    0s
+H    0     0                    8728.0000000 8660.39062  0.77%     -    0s
+H    0     0                    8691.0000000 8660.39062  0.35%     -    0s
+     0     0 8687.79263    0    7 8691.00000 8687.79263  0.04%     -    0s
+
+Cutting planes:
+  Gomory: 9
+  Cover: 11
+  Clique: 7
+  MIR: 4
+  StrongCG: 5
+  GUB cover: 11
+
+Explored 1 nodes (228 simplex iterations) in 0.05 seconds
+Thread count was 4 (of 4 available processors)
+
+Solution count 6: 8691 8728 9181 ... 30762
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 8.691000000000e+03, best bound 8.691000000000e+03, gap 0.0000%
+
+Gurobi 7.5.2 (linux64) logging started Tue Jan  8 07:05:44 2019
+
+Academic license - for non-commercial use only
+
+Gurobi Optimizer version 7.5.2 build v7.5.2rc1 (linux64)
+Copyright (c) 2017, Gurobi Optimization, Inc.
+
+Read MPS format model from file p0548.mps
+Reading time = 0.00 seconds
+P0548: 176 rows, 548 columns, 1711 nonzeros
+Optimize a model with 176 rows, 548 columns and 1711 nonzeros
+Variable types: 0 continuous, 548 integer (0 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+04]
+  Objective range  [5e+00, 1e+04]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+04]
+Presolve removed 59 rows and 183 columns
+Presolve time: 0.02s
+Presolved: 117 rows, 365 columns, 1074 nonzeros
+Variable types: 0 continuous, 365 integer (365 binary)
+Found heuristic solution: objective 30762.000000
+
+Root relaxation: objective 7.501192e+03, 156 iterations, 0.00 seconds
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 7501.19182    0   25 30762.0000 7501.19182  75.6%     -    0s
+H    0     0                    20540.000000 7501.19182  63.5%     -    0s
+H    0     0                    9199.0000000 7501.19182  18.5%     -    0s
+H    0     0                    9181.0000000 7501.19182  18.3%     -    0s
+     0     0 8415.67797    0   27 9181.00000 8415.67797  8.34%     -    0s
+     0     0 8600.10177    0   14 9181.00000 8600.10177  6.33%     -    0s
+     0     0 8660.39062    0    5 9181.00000 8660.39062  5.67%     -    0s
+H    0     0                    8728.0000000 8660.39062  0.77%     -    0s
+H    0     0                    8691.0000000 8660.39062  0.35%     -    0s
+     0     0 8687.79263    0    7 8691.00000 8687.79263  0.04%     -    0s
+
+Cutting planes:
+  Gomory: 9
+  Cover: 11
+  Clique: 7
+  MIR: 4
+  StrongCG: 5
+  GUB cover: 11
+
+Explored 1 nodes (228 simplex iterations) in 0.05 seconds
+Thread count was 4 (of 4 available processors)
+
+Solution count 6: 8691 8728 9181 ... 30762
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 8.691000000000e+03, best bound 8.691000000000e+03, gap 0.0000%

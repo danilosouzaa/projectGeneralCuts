@@ -414,7 +414,7 @@ int* calcCover(Cover_gpu *h_cover, int *h_solution, int qnt_Cover_per_Thread, in
 
 }
 
-Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread)
+Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread, int nConstraintsInitial)
 {
 
     //Cover_gpu *h_cover_new = AllocationStructCover(h_cover->cont*qnt_Cover_per_Thread,h_cover->numberConstraints*qnt_Cover_per_Thread);
@@ -425,7 +425,7 @@ Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread)
     int *h_solution = (int*)malloc(sizeof(int)*h_cut->cont*qnt_Cover_per_Thread);
     createSolutionsInitial(h_solution,h_cut->cont*qnt_Cover_per_Thread);
     int *fillBag;
-    int nConstraintsInitial = h_cut->numberConstrains;
+   // int nConstraintsInitial = h_cut->numberConstrains;
     Cover_gpu *h_cover = CopyCutToCover(h_cut);
     fillBag = calcCover(h_cover,h_solution,qnt_Cover_per_Thread,0);
     int contInitial = h_cover->cont;
@@ -434,12 +434,18 @@ Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread)
 
         for(i=0; i< nConstraintsInitial; i++)
         {
+            if(fillBag[j + i*qnt_Cover_per_Thread]<h_cut->rightSide[i]){
+                printf("SAIU!\n");
+                break;//continue;
+            }
             qnt = 0;
             int el;
             for(k = h_cover->ElementsConstraints[i]; k < h_cover->ElementsConstraints[i+1]; k++)
             {
                     qnt+=h_solution[k + j*contInitial];
+                //printf("%d ", h_solution[k + j*contInitial]);
             }
+           //printf("\n");
             //printf("%d\n",qnt);
             //getchar();
             int *n_coef = (int*)malloc(sizeof(int)*qnt);
@@ -462,8 +468,9 @@ Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread)
             int sz =  qnt;
             //int el = h_cover->ElementsConstraints[i];
             float delta = 0;
-            float phi = (float)fillBag[j + i*qnt_Cover_per_Thread];
+            float phi = (float)fillBag[j + i*qnt_Cover_per_Thread] - h_cover->rightSide[i];
             k = 1;
+            //printf("fill bag %f \n", phi);
             a_barra = (double)n_coef[0];
             for( w = 1 ; w < qnt; w++ )
             {
@@ -487,12 +494,13 @@ Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread)
             {
                 a_barra = b/qnt;
             }
+            //printf("a_barra = %f\n", a_barra);
             int *c_menus = (int*)malloc(sizeof(int)*qnt);
             int *c_mais = (int*)malloc(sizeof(int)*qnt);
             float *S_barra = (float*)malloc(sizeof(float)*(qnt+1) );
             int id1 = 0,id2 = 0, id3 = 0;
             for(w = 0; w < qnt; w++ )
-            {
+            {   //printf("%d ", n_coef[w]);
                 if((float)n_coef[w] <= a_barra)
                 {
                     c_menus[id1] = w;
@@ -504,6 +512,7 @@ Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread)
                     id2++;
                 }
             }
+            //printf("\n");
             S_barra[id3] = 0;
             id3++;
             for(w = 0; w<id2; w++)
@@ -517,9 +526,12 @@ Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread)
                 id3++;
             }
             int ini = 0, fim = 0, meio = 0;
-
-
-
+            //printf("S_barra: ");
+           //for(w=0;w<=qnt;w++){
+            //    printf("%f ", S_barra[w]);
+            //}
+            //printf("= %d",h_cover->rightSide[i]);
+           // printf("\n");
             for(w = h_cover->ElementsConstraints[i]; w<h_cover->ElementsConstraints[i+1]; w++)
             {
                 ini  = 0;

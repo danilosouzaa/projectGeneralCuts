@@ -147,6 +147,7 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
     numberVariables = lp_cols(lp);
     numberConstrains = lp_rows(lp);
     numberNonZero = lp_nz(lp);
+    int flag;
     int *idx = (int*)malloc(sizeof(int)*numberVariables);
     double *coef = (double*)malloc(sizeof(double)*numberVariables);
     for(i=0; i<numberConstrains; i++)
@@ -160,12 +161,17 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
                 idx[j] = 0;
             }
             lp_row(lp,i,idx,coef);
+            flag = 0;
             for(j=0; j<numberVariables; j++)
             {
                 if(coef[j]!=0)
                 {
+                    flag = 1;
                     numberNonZeroNew ++;
                 }
+            }
+            if(flag==0){
+                numberConstrainsLeft--;
             }
         }
     }
@@ -212,6 +218,9 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
                     //printf("%d \t",v_aux[tam]);
                     tam++;
                 }
+            }
+            if(tam==0){
+                continue;
             }
             v_aux[tam] = rhs;
             //tam++;
@@ -306,7 +315,7 @@ void SortByCoefficients(Cut_gpu *h_cut)
     }
 }
 
-int insertConstraintsLP(LinearProgramPtr lp, Cut_gpu *h_cut, int nConstrainsInitial, int counterCuts)
+int insertConstraintsLP(LinearProgramPtr lp, Cut_gpu *h_cut, int nConstrainsInitial, int *counterCuts)
 {
     int nRows, i, j, w, k = 0 ;
     int *idx;
@@ -326,9 +335,10 @@ int insertConstraintsLP(LinearProgramPtr lp, Cut_gpu *h_cut, int nConstrainsInit
         double rhs = h_cut->rightSide[i];
 
         //if(h_cut->typeConstraints[i]==LPC_CCOVER){
-        sprintf(name, "CCOVER(%d)",counterCuts);
+        int v = *counterCuts;
+        sprintf(name, "CCOVER(%d)",v);
         //printf("%s\n",name);
-        counterCuts++;
+        (*counterCuts)++;
         lp_add_row(lp,sz,idx,Coef,name,'L',rhs);
         //}
         w = 0;
