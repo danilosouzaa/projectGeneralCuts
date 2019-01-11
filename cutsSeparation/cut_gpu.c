@@ -166,12 +166,13 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
             {
                 if(coef[j]!=0)
                 {
-                    flag = 1;
+                    flag++;
                     numberNonZeroNew ++;
                 }
             }
-            if(flag==0){
+            if(flag<2){
                 numberConstrainsLeft--;
+                numberNonZeroNew -= flag;
             }
         }
     }
@@ -219,7 +220,7 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
                     tam++;
                 }
             }
-            if(tam==0){
+            if(tam<2){
                 continue;
             }
             v_aux[tam] = rhs;

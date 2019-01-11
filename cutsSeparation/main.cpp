@@ -116,12 +116,13 @@ int main(int argc, const char *argv[])
     lp_set_max_seconds( lp, 60 );
     lp_set_print_messages(lp,0);
     aux = lp_optimize_as_continuous( lp );
+//    aux = lp_optimize( lp );
     double newObj = lp_obj_value(lp);
         free(convertVaribles);
     timeFinal = clock();
     timeCurrent = ((double) (timeFinal - timeInitial)) / CLOCKS_PER_SEC;
     if(newObj!=obj_Best){
-        printf("New Objetive: %e\n",newObj);
+        printf("New Objetive: %f\n",newObj);
         printf("Number of Inserted Cuts:  %d \n", h_cut->numberConstrains - cutIni);
         printf("Current Time: %f\n", timeCurrent);
         obj_Best = newObj;
