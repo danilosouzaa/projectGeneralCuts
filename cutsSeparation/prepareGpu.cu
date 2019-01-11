@@ -628,13 +628,14 @@ listNeigh *returnMatrixNeighborhood (Cut_gpu *h_cut)
 
 
 
-Cut_gpu* generateCutsCover(Cut_gpu *h_cut, int nBlocks, int nThreads){
+Cut_gpu* generateCutsCover(Cut_gpu *h_cut, int nBlocks, int nThreads, int nConstraintsIni){
     int deviceCuda = 0;
     deviceCuda = verifyGpu();
-    Cover_gpu *h_cover = CopyCutToCover(h_cut);
+    Cover_gpu *h_cover = CopyCutToCover(h_cut,nConstraintsIni);
     int i, nRuns, nRunsPerThread;
     if(deviceCuda>0){
-        nRuns = h_cover->numberConstraints;
+        //nRuns = h_cover->numberConstraints;
+        nRuns = nConstraintsIni;
         if(nRuns%(nBlocks*nThreads) ==0 ){
             nRunsPerThread = nRuns/(nBlocks*nThreads);
         }else{
@@ -642,10 +643,14 @@ Cut_gpu* generateCutsCover(Cut_gpu *h_cut, int nBlocks, int nThreads){
         }
         printf("NumRuns: %d\n",nRuns);
         printf("NumRunsPerThread: %d\n",nRunsPerThread);
+//        size_t size_cover = sizeof(Cover_gpu) +
+//                          sizeof(TCoefficients)*(h_cover->cont) +
+//                          sizeof(TElementsConstraints)*(h_cover->numberConstraints+1) +
+//                          sizeof(TRightSide)*(h_cover->numberConstraints);
         size_t size_cover = sizeof(Cover_gpu) +
                           sizeof(TCoefficients)*(h_cover->cont) +
-                          sizeof(TElementsConstraints)*(h_cover->numberConstraints+1) +
-                          sizeof(TRightSide)*(h_cover->numberConstraints);
+                          sizeof(TElementsConstraints)*(nConstraintsIni+1) +
+                          sizeof(TRightSide)*(nConstraintsIni);
         Cover_gpu *d_cover = createGPUcover(h_cover);
         int *h_solutionCover;
         h_solutionCover = (int*)malloc(sizeof(int)*h_cover->cont);

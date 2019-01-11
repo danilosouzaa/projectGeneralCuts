@@ -74,7 +74,7 @@ Cut_gpu *AllocationStructCut(int cont, int nConstrains, int nVariables);
 
 Cover_gpu *AllocationStructCover(int cont, int nConstraints);
 
-Cover_gpu *CopyCutToCover(Cut_gpu *h_cut);
+Cover_gpu *CopyCutToCover(Cut_gpu *h_cut, int nConstraintsIni);
 
 Cut_gpu_aux *AllocationStructCutAux(int nConstrains, int nVariables, int nCont);
 

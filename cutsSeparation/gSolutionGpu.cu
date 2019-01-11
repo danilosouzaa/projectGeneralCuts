@@ -402,7 +402,7 @@ __global__ void runGPUCover(Cover_gpu *d_cover, int *d_solution,int nThreads, in
                     fim  = id3 - 1;
                     while(ini<=fim){
                         meio = (ini + fim)/2;
-                        if( (d_cover->Coefficients[i] <= S_barra[meio])&&(d_cover->Coefficients[i]>S_barra[meio-1]) ){
+                        if( (d_cover->Coefficients[i] - 1e-6 <= S_barra[meio])&&(d_cover->Coefficients[i] - 1e-6 >S_barra[meio-1]) ){
                            d_cover->Coefficients[i] = meio-1;
                            break;
                         }else{

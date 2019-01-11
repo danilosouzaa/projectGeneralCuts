@@ -426,7 +426,7 @@ Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread, int nConstra
     createSolutionsInitial(h_solution,h_cut->cont*qnt_Cover_per_Thread);
     int *fillBag;
    // int nConstraintsInitial = h_cut->numberConstrains;
-    Cover_gpu *h_cover = CopyCutToCover(h_cut);
+    Cover_gpu *h_cover = CopyCutToCover(h_cut,nConstraintsInitial);
     fillBag = calcCover(h_cover,h_solution,qnt_Cover_per_Thread,0);
     int contInitial = h_cover->cont;
     for(j=0; j<qnt_Cover_per_Thread; j++)
@@ -588,7 +588,7 @@ Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread, int nConstra
 
         h_cut = createCutsCover(h_cut,h_cover,idc_cover,qnt_cuts_cover);
         free(h_cover);
-        h_cover = CopyCutToCover(h_cut);
+        h_cover = CopyCutToCover(h_cut,nConstraintsInitial);
         free(idc_cover);
 
     }

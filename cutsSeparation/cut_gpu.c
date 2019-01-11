@@ -44,15 +44,16 @@ Cover_gpu *AllocationStructCover(int cont, int nConstraints)
 }
 
 
-Cover_gpu *CopyCutToCover(Cut_gpu *h_cut)
+Cover_gpu *CopyCutToCover(Cut_gpu *h_cut, int nConstraintsIni)
 {
-    Cover_gpu *cover = AllocationStructCover(h_cut->cont,h_cut->numberConstrains);
+    //Cover_gpu *cover = AllocationStructCover(h_cut->cont,h_cut->numberConstrains);
+    Cover_gpu *cover = AllocationStructCover(h_cut->cont,nConstraintsIni);
     int i;
     for(i=0; i< h_cut->cont; i++)
     {
         cover->Coefficients[i] = h_cut->Coefficients[i];
     }
-    for(i=0; i<h_cut->numberConstrains; i++)
+    for(i=0; i<nConstraintsIni; i++)
     {
         cover->ElementsConstraints[i] = h_cut->ElementsConstraints[i];
         cover->rightSide[i] = h_cut->rightSide[i];

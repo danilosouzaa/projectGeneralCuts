@@ -108,7 +108,7 @@ int main(int argc, const char *argv[])
     //h_cut_group = initial_runGPU(h_cut_group,precision,nThread,nBlock,szGroup1);
     //h_cut = generateCutsCover(h_cut,10,10);
     int cutIni2 = h_cut->numberConstrains;
-    h_cut = runCPU_Cut_Cover(h_cut,1,cutIni);
+    h_cut = runCPU_Cut_Cover(h_cut,10,cutIni);
     h_cut = returnVariablesOriginals(h_cut,convertVaribles,precision,numberVariablesInitial);
     //printf("numero inicial: %d, depois : %d\n",cutIni, h_cut->numberConstrains);
     insertConstraintsLP(lp,h_cut,cutIni2,&counterCuts);
