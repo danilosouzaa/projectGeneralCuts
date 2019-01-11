@@ -435,8 +435,7 @@ Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread, int nConstra
         for(i=0; i< nConstraintsInitial; i++)
         {
             if(fillBag[j + i*qnt_Cover_per_Thread]<h_cut->rightSide[i]){
-                printf("SAIU!\n");
-                break;//continue;
+                continue;
             }
             qnt = 0;
             int el;
@@ -539,7 +538,7 @@ Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread, int nConstra
                 while(ini<=fim)
                 {
                     meio = (ini + fim)/2;
-                    if( (h_cover->Coefficients[w] <= S_barra[meio])&&(h_cover->Coefficients[w]>S_barra[meio-1]) )
+                    if( (h_cover->Coefficients[w] - 1e-6 <= S_barra[meio])&&(h_cover->Coefficients[w]>S_barra[meio-1]) )
                     {
                         h_cover->Coefficients[w] = meio-1;
                         break;

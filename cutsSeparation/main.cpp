@@ -69,7 +69,7 @@ int* sortPerViolation(int *vViolation, int nConstraints){
 
 int main(int argc, const char *argv[])
 {
-    if(argc<5){
+    if(argc<6){
         printf("Number of parameters invalided\n");
         return 0;
     }
@@ -77,6 +77,7 @@ int main(int argc, const char *argv[])
     int precision = atoi(argv[2]);
     int szGroup1 = atoi(argv[3]);
     int maxDenomitor =atoi(argv[4]);
+    double timeMax = atof(argv[5]);
     int i,aux = 0;
     int counterCuts=0;
     strcat(name,argv[1]);
@@ -85,14 +86,21 @@ int main(int argc, const char *argv[])
     Cut_gpu *h_cut = fillStructPerLP(precision, lp);
     lp_write_lp(lp,"danilo.lp");
     int cutIni = h_cut->numberConstrains;
+    time_t timeInitial = clock();
+    time_t timeFinal;
+    double timeCurrent, obj_Best;
+    //lp_optimize_as_continuous(lp);
+
+    obj_Best = lp_obj_value(lp);
+    printf("Initial obj: %f\n", obj_Best);
     do{
 
     int *convertVaribles = (int*)malloc(sizeof(int)*h_cut->cont);
     int numberVariablesInitial = h_cut->numberVariables;
-    printf("Number Variables antes: %d\n", h_cut->numberVariables);
+    //printf("Number Variables antes: %d\n", h_cut->numberVariables);
     h_cut = removeNegativeCoefficientsAndSort(h_cut,convertVaribles,precision);
-    printf("Number Variables depois: %d\n", h_cut->numberVariables);
-    printf("Number Constraints: %d\n", h_cut->numberConstrains);
+    //printf("Number Variables depois: %d\n", h_cut->numberVariables);
+    //printf("Number Constraints: %d\n", h_cut->numberConstrains);
 
 
     int nBlock = 2, nThread = 512;
@@ -101,15 +109,26 @@ int main(int argc, const char *argv[])
     //h_cut = generateCutsCover(h_cut,10,10);
     int cutIni2 = h_cut->numberConstrains;
     h_cut = runCPU_Cut_Cover(h_cut,1,cutIni);
-    printf("DEPOIS!!!");
     h_cut = returnVariablesOriginals(h_cut,convertVaribles,precision,numberVariablesInitial);
-    printf("numero inicial: %d, depois : %d\n",cutIni, h_cut->numberConstrains);
+    //printf("numero inicial: %d, depois : %d\n",cutIni, h_cut->numberConstrains);
     insertConstraintsLP(lp,h_cut,cutIni2,&counterCuts);
     lp_write_lp(lp,"danilo2.lp");
     lp_set_max_seconds( lp, 60 );
-    aux = lp_optimize( lp );
-    free(convertVaribles);
-    }while(aux == 3 );
+    lp_set_print_messages(lp,0);
+    aux = lp_optimize_as_continuous( lp );
+    double newObj = lp_obj_value(lp);
+        free(convertVaribles);
+    timeFinal = clock();
+    timeCurrent = ((double) (timeFinal - timeInitial)) / CLOCKS_PER_SEC;
+    if(newObj!=obj_Best){
+        printf("New Objetive: %e\n",newObj);
+        printf("Number of Inserted Cuts:  %d \n", h_cut->numberConstrains - cutIni);
+        printf("Current Time: %f\n", timeCurrent);
+        obj_Best = newObj;
+
+    }
+
+    }while(timeCurrent < timeMax);
 //    lp_set_max_seconds(lp,60);
 //    lp_optimize(lp);
 //    lp_free(&lp);
