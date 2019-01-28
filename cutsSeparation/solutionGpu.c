@@ -2543,13 +2543,19 @@ Cut_gpu* createCutsOfPhaseTwo(Cut_gpu *h_cut, Cut_gpu_aux *cut_aux, solutionGpu 
 }
 
 Cut_gpu* createCutsCover(Cut_gpu *h_cut, Cover_gpu *h_cover, int *idc_Cover, int nCuts){
-    int i = 0, cont = 0;
+    int i = 0,j = 0, cont = 0;
     cont += h_cut->cont;
     for(i=0;i<h_cover->numberConstraints;i++){
         if(idc_Cover[i]==1){
-            cont+= h_cover->ElementsConstraints[i+1] - h_cover->ElementsConstraints[i];
+            for(j=h_cover->ElementsConstraints[i];j<h_cover->ElementsConstraints[i+1];j++){
+              if(h_cover->Coefficients[j]!=0){
+                cont++;
+              }
+            }
+            //cont+= h_cover->ElementsConstraints[i+1] - h_cover->ElementsConstraints[i];
         }
     }
+//    getchar();
     Cut_gpu *h_cut_new = AllocationStructCut(cont, h_cut->numberConstrains+nCuts, h_cut->numberVariables );
     h_cut_new->ElementsConstraints[0] = 0;
     for(i = 0; i<h_cut->numberConstrains;i++){
@@ -2566,15 +2572,17 @@ Cut_gpu* createCutsCover(Cut_gpu *h_cut, Cover_gpu *h_cover, int *idc_Cover, int
     }
 
     int aux = h_cut->numberConstrains;
-    int j, el, c_aux = h_cut->cont;
+    int el, c_aux = h_cut->cont;
     for(i=0;i<h_cover->numberConstraints;i++){
         if(idc_Cover[i]==1){
             h_cut_new->typeConstraints[aux] = LPC_CCOVER;
             h_cut_new->rightSide[aux] = h_cover->rightSide[i];
             for( j = h_cover->ElementsConstraints[i];j<h_cover->ElementsConstraints[i+1];j++){
-                    h_cut_new->Elements[c_aux] = h_cut->Elements[j];
-                    h_cut_new->Coefficients[c_aux] = h_cover->Coefficients[j];
-                    c_aux++;
+                    if(h_cover->Coefficients[j]!=0){
+                        h_cut_new->Elements[c_aux] = h_cut->Elements[j];
+                        h_cut_new->Coefficients[c_aux] = h_cover->Coefficients[j];
+                        c_aux++;
+                    }
             }
             aux++;
             h_cut_new->ElementsConstraints[aux] = c_aux;

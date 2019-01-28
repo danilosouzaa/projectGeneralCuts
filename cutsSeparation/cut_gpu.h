@@ -96,6 +96,8 @@ int returnIndVector(TNames *v,char *nome, int sz);
 
 Cut_gpu *CreateGroupForVectorNumberConstraints(Cut_gpu *h_cut, int *vectorConstraints, int szConstraints, int *idxOriginal);
 
+//Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp);
+
 Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp);
 
 void setParameters_ccg(parameters_ccg *parCCG, int mode);

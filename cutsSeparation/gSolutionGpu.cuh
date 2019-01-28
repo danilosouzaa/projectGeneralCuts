@@ -33,6 +33,6 @@ __device__ void DecimalToBinary(int number,unsigned char v[], int sizegroup);
 
 __global__ void runGPUZerohHalf(Cut_gpu *d_cut, int *d_solution, int nThread,int sizeGroup, int nBlock, int precision);
 
-__global__ void runGPUCover(Cover_gpu *d_cover, int *d_solution,int nThreads, int nRuns, int nRunsPerThread);
+__global__ void runGPUCover(Cover_gpu *d_cover, int *d_solution,int nThreads, int nRuns, int nRunsPerThread, int k_aux);
 
 #endif /* GSOLUTION_CUH_ */

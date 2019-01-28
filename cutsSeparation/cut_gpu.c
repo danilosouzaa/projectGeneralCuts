@@ -143,19 +143,20 @@ int returnIndVector(TNames *v,char *nome, int sz)
 
 Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
 {
-    int numberVariables, numberConstrains, numberNonZero;
-    int i, j, k, numberConstrainsLeft = 0, numberNonZeroNew = 0;
+    lp_optimize_as_continuous(lp);
+    int numberVariables, numberConstraints, numberNonZero;
+    int i, j, k, numberConstraintsLeft = 0, numberNonZeroNew = 0;
     numberVariables = lp_cols(lp);
-    numberConstrains = lp_rows(lp);
+    numberConstraints = lp_rows(lp);
     numberNonZero = lp_nz(lp);
     int flag;
     int *idx = (int*)malloc(sizeof(int)*numberVariables);
     double *coef = (double*)malloc(sizeof(double)*numberVariables);
-    for(i=0; i<numberConstrains; i++)
+    for(i=0; i<numberConstraints; i++)
     {
-        if(lp_sense(lp,i)=='L')
+        if((lp_sense(lp,i)=='L'))
         {
-            numberConstrainsLeft++;
+            numberConstraintsLeft++;
             for(j=0; j<numberVariables; j++)
             {
                 coef[j]=0.0;
@@ -171,8 +172,9 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
                     numberNonZeroNew ++;
                 }
             }
-            if(flag<2){
-                numberConstrainsLeft--;
+            if(flag<2)
+            {
+                numberConstraintsLeft--;
                 numberNonZeroNew -= flag;
             }
         }
@@ -182,16 +184,24 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
     double rhs;
     double *xTemp;
     //printf("testes: %d %d %d", numberConstrains, numberVariables, numberNonZero);
-    lp_optimize_as_continuous(lp);
+    //printf("double Size: %d\n ", sizeof(double));
     xTemp = lp_x(lp);
+    //int *idx_Original = lp_original_colummns(lp);
+    //printf("xTemp Size: %d\n",sizeof(xTemp));
+    //printf("NumberVariables: %d\n",numberVariables);
     Cut_gpu *h_cut;
-    h_cut = AllocationStructCut(numberNonZeroNew,numberConstrainsLeft,numberVariables);
+    h_cut = AllocationStructCut(numberNonZeroNew,numberConstraintsLeft,numberVariables);
+    //activedConstraints = (int*)malloc(sizeof(int)*numberConstraintsLeft);
+   //memset(activedConstraints,0,sizeof(int)*numberConstraintsLeft);
+
     int *v_aux = (int*)malloc(sizeof(int)*(numberVariables + 1));
     int tam;
     for(i=0; i<numberVariables; i++)
     {
         coef[i]=0.0;
         idx[i] = 0;
+        //printf("teste: %f\n", xTemp[i] );
+        //printf("idOriginal: %d\n", idx_Original[i]);
         h_cut->xAsterisc[i] = xTemp[i] * precision;
         //printf("x = %d", h_cut->xAsterisc[i]);
         //getchar();
@@ -201,12 +211,12 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
     int aux = 0;
     h_cut->ElementsConstraints[0] = 0;
     int contador = 0;
-    for(i=0; i<numberConstrains; i++)
+    for(i=0; i<numberConstraints; i++)
     {
         //printf("Sense: %c\n",lp_sense(lp,i));
         //getchar();
 
-        if(lp_sense(lp,i)=='L')
+        if((lp_sense(lp,i)=='L'))
         {
             lp_row(lp,i,idx,coef);
             rhs = lp_rhs(lp,i);
@@ -221,32 +231,39 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
                     tam++;
                 }
             }
-            if(tam<2){
+            if(tam<2)
+            {
                 continue;
             }
             v_aux[tam] = rhs;
             //tam++;
             int mdc = CutP_maxDivisorCommonVector(v_aux, tam);
+
             //printf("Mdc: %d\t",mdc);
             for(j=0; j<numberVariables; j++)
             {
                 if(coef[j]!=0.0)
                 {
-
                     //      printf("Coef: %f idx: %d \t ", coef[j],idx[j]);
                     h_cut->Coefficients[aux] = coef[j]/mdc;
                     h_cut->Elements[aux] = idx[j];
                     aux++;
                 }
+
                 coef[j] = 0.0;
                 idx[j] = 0;
             }
 
             // printf("\n rhs: %f\n",rhs);
-
+            char nameRows[255];
+            lp_row_name(lp,i,nameRows);
+            //printf("%s\n",nameRows);
             h_cut->ElementsConstraints[contador+1] = aux;
             h_cut->rightSide[contador] = rhs/mdc;
             h_cut->typeConstraints[contador] = 0;
+            if(strncmp("resR",nameRows,4)==0){
+                h_cut->typeConstraints[contador] = RES_RR;
+            }
             contador++;
         }
 
@@ -338,8 +355,15 @@ int insertConstraintsLP(LinearProgramPtr lp, Cut_gpu *h_cut, int nConstrainsInit
 
         //if(h_cut->typeConstraints[i]==LPC_CCOVER){
         int v = *counterCuts;
-        sprintf(name, "CCOVER(%d)",v);
-        //printf("%s\n",name);
+        if(h_cut->typeConstraints[i] == LPC_CGGPU){
+            sprintf(name, "CGGPU1(%d)",v);
+        }else if(h_cut->typeConstraints[i] == LPC_CGGPUR2){
+            sprintf(name, "CGGPU2(%d)",v);
+        }else{
+            sprintf(name, "CCOVER(%d)",v);
+        }
+
+//        printf("ok: %s\n",name);
         (*counterCuts)++;
         lp_add_row(lp,sz,idx,Coef,name,'L',rhs);
         //}
@@ -386,7 +410,7 @@ Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector, i
                 rhs += Cut_new->Coefficients[j];
                 Cut_new->Elements[j] = qntX;
                 el = h_cut->Elements[j];
-                Cut_new->xAsterisc[qntX] = precision - h_cut->xAsterisc[el];
+                Cut_new->xAsterisc[qntX] = 1 - h_cut->xAsterisc[el];
                 convertVector[qntX-h_cut->numberVariables] = h_cut->Elements[j];
                 //convertCoef[qntX-h_cut->numberVariables] = Cut_new->Coefficients[j];
                 qntX++;
@@ -433,7 +457,7 @@ Cut_gpu *returnVariablesOriginals(Cut_gpu *h_cut, int *convertVector, int precis
 //                printf("%d %d %d \n",h_cut->Coefficients[j], Cut_new->Coefficients[j], j);
                 rhs -= h_cut->Coefficients[j];
                 Cut_new->Elements[j] = convertVector[el - nVariablesInitial];
-                Cut_new->xAsterisc[ Cut_new->Elements[j] ] = precision - h_cut->xAsterisc[el];
+                Cut_new->xAsterisc[ Cut_new->Elements[j] ] = 1 - h_cut->xAsterisc[el];
             }
             else
             {

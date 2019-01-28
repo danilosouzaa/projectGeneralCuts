@@ -25,7 +25,7 @@ Cut_gpu* initial_runGPU(Cut_gpu *h_cut, int precision, int nThreads, int nBlocks
 
 //Cut_gpu* second_phase_runGPU(Cut_gpu *h_cut, Cut_gpu_aux *cut_aux, int numberMaxConst, int nRuns, int maxDenominator, int precision);
 
-Cut_gpu* second_phase_runGPU(Cut_gpu *h_cut, Cut_gpu_aux *cut_aux, int numberMaxConst, int nRuns, int maxDenominator, int precision, int nB,int nT, int *pos_R1, int szR, double timeGPU);
+Cut_gpu* second_phase_runGPU(Cut_gpu *h_cut, int numberMaxConst, int nRuns, int maxDenominator, int precision, int nB,int nT, int *pos_R1, int szR, double timeGPU);
 
 Cut_gpu* phase_zeroHalf(Cut_gpu *h_cut, Cut_gpu_aux *cut_aux,int nConstraintsPerSet);
 
@@ -38,6 +38,6 @@ void returnDimension(int *nB, int *nT, int nRuns,int numberConstraints);
 
 void fillParImpar(int *vPar,int *vImpar, Cut_gpu *h_cut);
 
-Cut_gpu* generateCutsCover(Cut_gpu *h_cut, int nThreads, int nBlocks);
+Cut_gpu* generateCutsCover(Cut_gpu *h_cut, int nBlocks, int nThreads, int nConstraintsIni, int aux);
 
 #endif

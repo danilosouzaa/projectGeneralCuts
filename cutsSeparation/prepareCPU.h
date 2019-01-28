@@ -23,5 +23,9 @@ void runCPUR2(Cut_gpu *h_cut, solutionGpu *h_solution, int numberMaxConst, int *
 Cut_gpu* second_phase_runCPU(Cut_gpu *h_cut, int numberMaxConst, int nRuns, int maxDenominator, int precision, int szR, double timeLeft);
 int createSolutionsInitial(int *h_Solution, int sz);
 Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread, int nConstraintsInitial);
+Cut_gpu *onlyVariablesActive(Cut_gpu *h_cut);
+
+Cut_gpu *structCopyCutGpu(Cut_gpu *h_cut);
+
 EXTERN_C_END
 #endif

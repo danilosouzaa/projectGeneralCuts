@@ -305,7 +305,7 @@ __global__ void runGPUR1_aleatory(Cut_gpu *d_cut, solutionGpu *d_solution, unsig
     }
 }
 
-__global__ void runGPUCover(Cover_gpu *d_cover, int *d_solution,int nThreads, int nRuns, int nRunsPerThread)
+__global__ void runGPUCover(Cover_gpu *d_cover, int *d_solution,int nThreads, int nRuns, int nRunsPerThread, int k_Aux)
 {
     int term = threadIdx.x +blockIdx.x*nThreads;
     int i, j, counter = 0, aux = 0;
@@ -320,7 +320,7 @@ __global__ void runGPUCover(Cover_gpu *d_cover, int *d_solution,int nThreads, in
         {
             counter = 0;
             qnt = 0;
-            for(i = d_cover->ElementsConstraints[j]; i< d_cover->ElementsConstraints[j+1]; i++)
+            for(i = d_cover->ElementsConstraints[j] + k_Aux; i< d_cover->ElementsConstraints[j+1]; i++)
             {
                 counter += d_cover->Coefficients[i];
                 d_solution[i] = 1;
@@ -338,12 +338,12 @@ __global__ void runGPUCover(Cover_gpu *d_cover, int *d_solution,int nThreads, in
                 b = d_cover->rightSide[j];
                 bdc = (float)d_cover->rightSide[j] / (float)qnt;
                 int sz = qnt;
-                int el = d_cover->ElementsConstraints[j];
+                int el = d_cover->ElementsConstraints[j] + k_Aux;
                 float delta = 0;
                 float phi = (float)counter - (float)d_cover->rightSide[j];
                 int k = 1;
                 a_barra = d_cover->Coefficients[el];
-                for(i = d_cover->ElementsConstraints[j]; i < d_cover->ElementsConstraints[j] + (qnt-1); i++){
+                for(i = d_cover->ElementsConstraints[j] + k_Aux; i < d_cover->ElementsConstraints[j] + (qnt-1); i++){
                     delta = a_barra - d_cover->Coefficients[i+1];
                     if((float)k*delta < phi){
                         a_barra = d_cover->Coefficients[i+1];
@@ -363,7 +363,7 @@ __global__ void runGPUCover(Cover_gpu *d_cover, int *d_solution,int nThreads, in
                 int *c_mais = (int*)malloc(sizeof(int)*qnt);
                 float *S_barra = (float*)malloc(sizeof(float)*(qnt+1) );
                 int id1 = 0 ,id2 = 0, id3 = 0;
-                for(i = d_cover->ElementsConstraints[j]; i < d_cover->ElementsConstraints[j] + qnt; i++ ){
+                for(i = d_cover->ElementsConstraints[j] + k_Aux; i < d_cover->ElementsConstraints[j] + qnt; i++ ){
                     if((float)d_cover->Coefficients[i] <= a_barra){
                         c_menus[id1] = i;
                         id1++;
@@ -402,14 +402,14 @@ __global__ void runGPUCover(Cover_gpu *d_cover, int *d_solution,int nThreads, in
                     fim  = id3 - 1;
                     while(ini<=fim){
                         meio = (ini + fim)/2;
-                        if( (d_cover->Coefficients[i] - 1e-6 <= S_barra[meio])&&(d_cover->Coefficients[i] - 1e-6 >S_barra[meio-1]) ){
+                        if( (d_cover->Coefficients[i] - (1e-6) <= S_barra[meio])&&(d_cover->Coefficients[i] >S_barra[meio-1]) ){
                            d_cover->Coefficients[i] = meio-1;
                            break;
                         }else{
-                            if(d_cover->Coefficients[i]<S_barra[meio]){
+                            if(d_cover->Coefficients[i] <S_barra[meio]){
                                 fim = meio - 1;
                             }
-                            if(d_cover->Coefficients[i]>S_barra[meio]){
+                            if(d_cover->Coefficients[i] - (1e-6) >S_barra[meio]){
                                 ini = meio + 1;
                             }
                         }

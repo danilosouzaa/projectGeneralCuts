@@ -270,7 +270,7 @@ void returnDimension(int *nB, int *nT, int nRuns,int numberConstraints)
 }
 
 
-Cut_gpu* second_phase_runGPU(Cut_gpu *h_cut, Cut_gpu_aux *cut_aux, int numberMaxConst, int nRuns, int maxDenominator, int precision, int nB,int nT, int *pos_R1, int szR, double timeLeft)
+Cut_gpu* second_phase_runGPU(Cut_gpu *h_cut, int numberMaxConst, int nRuns, int maxDenominator, int precision, int nB,int nT, int *pos_R1, int szR, double timeLeft)
 {
     int deviceCuda;
     deviceCuda = verifyGpu();
@@ -628,7 +628,7 @@ listNeigh *returnMatrixNeighborhood (Cut_gpu *h_cut)
 
 
 
-Cut_gpu* generateCutsCover(Cut_gpu *h_cut, int nBlocks, int nThreads, int nConstraintsIni){
+Cut_gpu* generateCutsCover(Cut_gpu *h_cut, int nBlocks, int nThreads, int nConstraintsIni, int qnt){
     int deviceCuda = 0;
     deviceCuda = verifyGpu();
     Cover_gpu *h_cover = CopyCutToCover(h_cut,nConstraintsIni);
@@ -641,8 +641,6 @@ Cut_gpu* generateCutsCover(Cut_gpu *h_cut, int nBlocks, int nThreads, int nConst
         }else{
             nRunsPerThread = ( nRuns/(nBlocks*nThreads) )+ 1;
         }
-        printf("NumRuns: %d\n",nRuns);
-        printf("NumRunsPerThread: %d\n",nRunsPerThread);
 //        size_t size_cover = sizeof(Cover_gpu) +
 //                          sizeof(TCoefficients)*(h_cover->cont) +
 //                          sizeof(TElementsConstraints)*(h_cover->numberConstraints+1) +
@@ -660,7 +658,7 @@ Cut_gpu* generateCutsCover(Cut_gpu *h_cut, int nBlocks, int nThreads, int nConst
         int *d_solutionCover;
         gpuMalloc((void*)&d_solutionCover, sizeof(int)*(h_cover->cont));
         gpuMemcpy(d_solutionCover, h_solutionCover, sizeof(int)*(h_cover->cont), cudaMemcpyHostToDevice);
-        runGPUCover<<<nBlocks,nThreads>>>(d_cover,d_solutionCover,nThreads,nRuns,nRunsPerThread);
+        runGPUCover<<<nBlocks,nThreads>>>(d_cover,d_solutionCover,nThreads,nRuns,nRunsPerThread, qnt);
         //runGPUZerohHalf<<<nBlocks,nThreads>>>(d_cut, d_solutionZHalf, nThreads, sizeGroup, nBlocks, precision);
         gpuDeviceSynchronize();
         gpuMemcpy(h_solutionCover, d_solutionCover, sizeof(int)*(h_cover->cont), cudaMemcpyDeviceToHost);
@@ -695,7 +693,7 @@ Cut_gpu* generateCutsCover(Cut_gpu *h_cut, int nBlocks, int nThreads, int nConst
         //        qnt_cuts_zero++;
         //    }
         //}
-        printf("qnt cut cover: %d\n", qnt_cuts_cover);
+        //printf("qnt cut cover: %d\n", qnt_cuts_cover);
 
         //if(qnt_cuts_zero>0){
         //    out_h_cut = createCutsStrongZeroHalf(h_cut, h_solutionZHalf, sizeGroup, nBlocks, nThreads, precision, qnt_cuts_zero,h_cut->cont,h_cut->numberConstrains);
