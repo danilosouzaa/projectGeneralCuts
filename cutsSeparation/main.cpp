@@ -17,9 +17,10 @@ extern "C"
 /*Pameters
 1: Name Instance
 2: Precision of decimal
-3: Group Size initial
-4: Number of max denominator phase 2
-
+3: Constraints Number per blocks phase 2
+4: Group Size initial
+5: Number of max denominator phase 2
+6: Time
 
 
 */
@@ -75,16 +76,17 @@ int* sortPerViolation(int *vViolation, int nConstraints)
 
 int main(int argc, const char *argv[])
 {
-    if(argc<6)
+    if(argc<7)
     {
         printf("Number of parameters invalided\n");
         return 0;
     }
     char name[255] = "../inst/";
     int precision = atoi(argv[2]);
-    int szGroup1 = atoi(argv[3]);
-    int maxDenomitor =atoi(argv[4]);
-    double timeMax = atof(argv[5]);
+    int maxConstraints = atoi(argv[3]);
+    int sizeGroup = atoi(argv[4]);
+    int maxDenomitor =atoi(argv[5]);
+    double timeMax = atof(argv[6]);
     int i,aux = 0;
     int counterCuts=0;
     strcat(name,argv[1]);
@@ -165,8 +167,8 @@ int main(int argc, const char *argv[])
                 }
                 nRuns_temp = nThreads*nBlocks;
 
-                h_cut_new = second_phase_runCPU(h_cut_new,8,nRuns_temp,100,precision,6,timeMax-timeCurrent);
-                h_cut_new = second_phase_runGPU(h_cut_new,8,nRuns_temp,100,precision,nBlocks,nThreads,pos_R1,6,timeMax-timeCurrent);
+                h_cut_new = second_phase_runCPU(h_cut_new,maxConstraints,nRuns_temp,maxDenomitor,precision,sizeGroup,timeMax-timeCurrent);
+                //h_cut_new = second_phase_runGPU(h_cut_new,maxConstraints,nRuns_temp,maxDenomitor,precision,nBlocks,nThreads,&pos_R1,sizeGroup,timeMax-timeCurrent);
 
             }
             aux = h_cut_new->numberConstrains - aux;
