@@ -156,6 +156,7 @@ int main(int argc, const char *argv[])
             }
 
             int nRuns_temp;
+            int pos_R1=0;
             for(i=0; i<nRepeat; i++)
             {
                 if((nRepeat>1)&&(i == nRepeat))
@@ -165,6 +166,7 @@ int main(int argc, const char *argv[])
                 nRuns_temp = nThreads*nBlocks;
 
                 h_cut_new = second_phase_runCPU(h_cut_new,8,nRuns_temp,100,precision,6,timeMax-timeCurrent);
+                h_cut_new = second_phase_runGPU(h_cut_new,8,nRuns_temp,100,precision,nBlocks,nThreads,pos_R1,6,timeMax-timeCurrent);
 
             }
             aux = h_cut_new->numberConstrains - aux;
