@@ -231,8 +231,8 @@ void runCPUR2(Cut_gpu *h_cut, solutionGpu *h_solution, int numberMaxConst, int *
     //  #pragma omp for
     for(k=0; k<nRuns; k++)
     {
-       //printf("k:%d\n",k);
-        int mult_1, mult_2, rest_a,rest_b, i, j, el, rhs1, rhs2, value_tes, violation = 0, aux, n1_best = -1, n2_best = -1, d1_best = -1, qnt_1, d2_best=-1;//, cont=0;
+        //printf("k:%d\n",k);
+        int mult_1, mult_2, rest_a, rest_b, i, j, el, rhs1, rhs2, value_tes, violation = 0, aux, n1_best = -1, n2_best = -1, d1_best = -1, qnt_1, d2_best=-1;//, cont=0;
         // double timeCurrent = omp_get_wtime();
         int Numerator[20];
         int Denominator[20];
@@ -414,18 +414,22 @@ int* calcCover(Cover_gpu *h_cover, int *h_solution, int qnt_Cover_per_Thread, in
 
 }
 
-Cut_gpu *structCopyCutGpu(Cut_gpu *h_cut){
+Cut_gpu *structCopyCutGpu(Cut_gpu *h_cut)
+{
     Cut_gpu *new_Contraints = AllocationStructCut(h_cut->cont,h_cut->numberConstrains,h_cut->numberVariables);
     int i;
-    for(i=0;i<h_cut->numberVariables;i++){
+    for(i=0; i<h_cut->numberVariables; i++)
+    {
         new_Contraints->xAsterisc[i] = h_cut->xAsterisc[i];
     }
 //    printf("Teste\n");
-    for(i=0;i<h_cut->cont;i++){
+    for(i=0; i<h_cut->cont; i++)
+    {
         new_Contraints->Coefficients[i] = h_cut->Coefficients[i];
         new_Contraints->Elements[i] = h_cut->Elements[i];
     }
-    for(i=0;i<h_cut->numberConstrains;i++){
+    for(i=0; i<h_cut->numberConstrains; i++)
+    {
         new_Contraints->typeConstraints[i] = h_cut->typeConstraints[i];
         new_Contraints->ElementsConstraints[i] = h_cut->ElementsConstraints[i];
         new_Contraints->rightSide[i] = h_cut->rightSide[i];
@@ -435,40 +439,62 @@ Cut_gpu *structCopyCutGpu(Cut_gpu *h_cut){
 
 }
 
-Cut_gpu *onlyVariablesActive(Cut_gpu *h_cut)
+void saveSoluctionFrac(double *xTemp, int numberVariables, char *nameFileOut, LinearProgramPtr lp, int round){
+    FILE *fout;
+    char tempName[255];
+    char VariablesName[255];
+    int i;
+    char *teste;
+    teste = strstr(nameFileOut,"/") + 1;
+    sprintf(tempName, "../saidaTemp/Sol_temp_%s_round_%d.txt", teste,round);
+
+    fout = fopen(tempName,"w");
+    for(i = 0; i <numberVariables;i++){
+        lp_col_name(lp,i,VariablesName);
+        fprintf(fout,"%s = %f\n", VariablesName,xTemp[i]);
+    }
+    fclose(fout);
+    sprintf(tempName,"../lpTemp/LP_temp_%s_round_%d.lp", teste,round);
+    lp_write_lp(lp,tempName);
+}
+
+
+
+Cut_gpu *onlyVariablesActive(Cut_gpu *h_cut, LinearProgramPtr lp)
 {
     int qnt_var_active = 0, qnt_constraints_actived = 0;
     int *actived = (int*)malloc(sizeof(int)*h_cut->numberConstrains);
+    int *varActived = (int*)malloc(sizeof(int)*h_cut->numberConstrains);
     int i, j, el = 0;
+    double *xTemp = lp_x(lp);
     for(i = 0; i< h_cut->numberConstrains; i++)
-    {
-        int aux = 0;
-        actived[i] = 0;
-        for(j = h_cut->ElementsConstraints[i]; j<h_cut->ElementsConstraints[i+1]; j++)
-        {
+    {   varActived[i] = 0;
+        for(j= h_cut->ElementsConstraints[i];j<h_cut->ElementsConstraints[i+1];j++){
             el = h_cut->Elements[j];
-            if(h_cut->xAsterisc[el]!=0)
-            {
-                qnt_var_active++;
-                aux++;
+            if(xTemp[el]!=0){
+                //printf("xTmp : %f ",xTemp[el]);
+                varActived[i]++;
             }
         }
-        if(aux>=2)
-        {
+        if(varActived[i]>=2){
+            actived[i]=1;
             qnt_constraints_actived++;
-            actived[i] = 1;
+            qnt_var_active += varActived[i];
         }else{
-            qnt_var_active -= aux;
+            actived[i]=0;
         }
     }
+    free(varActived);
+//    getchar();
+    //printf("DEPOIS!!!-----------------------------------------\n");
 //    printf("quant coef: %d\n", h_cut->cont);
 //    printf("quant var actived: %d\n", qnt_var_active);
 //    printf("quant constraints: %d\n", h_cut->numberConstrains);
 //    printf("quant contraints actived: %d\n", qnt_constraints_actived);
     Cut_gpu *new_Contraints = AllocationStructCut(qnt_var_active,qnt_constraints_actived,h_cut->numberVariables);
-
     int cont = 0, cont_constraints = 0;
-    for(i=0;i<h_cut->numberVariables;i++){
+    for(i=0; i<h_cut->numberVariables; i++)
+    {
         new_Contraints->xAsterisc[i] = h_cut->xAsterisc[i];
     }
     new_Contraints->ElementsConstraints[0] = 0;
@@ -479,24 +505,90 @@ Cut_gpu *onlyVariablesActive(Cut_gpu *h_cut)
             for(j=h_cut->ElementsConstraints[i]; j<h_cut->ElementsConstraints[i+1]; j++)
             {
                 el = h_cut->Elements[j];
-                if(h_cut->xAsterisc[el]!=0)
+
+                if(xTemp[el]!=0)
                 {
+                    //printf("%d - %d ",h_cut->Coefficients[j],el);
                     new_Contraints->Coefficients[cont] = h_cut->Coefficients[j];
                     new_Contraints->Elements[cont] = el;
                     cont++;
                 }
             }
+            //printf("%d -- %d x %d -- %d ",new_Contraints->ElementsConstraints[cont_constraints], cont, h_cut->ElementsConstraints[i], h_cut->ElementsConstraints[i+1]);
+            //printf("<= %d", h_cut->rightSide[i]);
+            //printf("\n");
             new_Contraints->rightSide[cont_constraints] = h_cut->rightSide[i];
             new_Contraints->typeConstraints[cont_constraints] = h_cut->typeConstraints[i];
+            new_Contraints->ElementsConstraints[cont_constraints + 1] = cont;
             cont_constraints++;
-            new_Contraints->ElementsConstraints[cont_constraints] = cont;
-
+//            printf("NEWS!\n");
+//            show_contraints(h_cut,i);
+//            show_contraints(new_Contraints,cont_constraints-1);
+////            //getchar();
         }
     }
 
+    int *isRepeat = (int*)malloc(sizeof(int)*new_Contraints->numberConstrains);
+    for(i=0; i<new_Contraints->numberConstrains; i++)
+    {
+        isRepeat[i] = 0;
+    }
+    for(i=0; i<new_Contraints->numberConstrains; i++)
+    {
+        for(j = i+1; j<new_Contraints->numberConstrains; j++)
+        {
+            isRepeat[j] += verifyRepeatCuts(new_Contraints,j,i);
+        }
+    }
+    cont = new_Contraints->cont;
+    int nConstraintsN = new_Contraints->numberConstrains;
+    for(i=0; i<new_Contraints->numberConstrains; i++)
+    {
+        if(isRepeat[i]>0)
+        {
+            cont -= (new_Contraints->ElementsConstraints[i+1] - new_Contraints->ElementsConstraints[i]);
+            nConstraintsN --;
+        }
+    }
+    Cut_gpu *new_Contraints_no_repeat = AllocationStructCut(cont,nConstraintsN,new_Contraints->numberVariables);
+    for(i=0; i<new_Contraints_no_repeat->numberVariables; i++)
+    {
+        new_Contraints_no_repeat->xAsterisc[i] = new_Contraints->xAsterisc[i];
+    }
+    new_Contraints_no_repeat->ElementsConstraints[0] = 0;
+    cont = 0;
+    cont_constraints = 0;
+    for(i=0; i<new_Contraints->numberConstrains; i++)
+    {
+        if(isRepeat[i]==0)
+        {
+            for(j=new_Contraints->ElementsConstraints[i]; j<new_Contraints->ElementsConstraints[i+1]; j++)
+            {
 
+
+                    //printf("%d - %d ",h_cut->Coefficients[j],el);
+                    new_Contraints_no_repeat->Coefficients[cont] = new_Contraints->Coefficients[j];
+                    new_Contraints_no_repeat->Elements[cont] = new_Contraints->Elements[j];
+                    cont++;
+            }
+            //printf("<= %d", h_cut->rightSide[i]);
+            //printf("\n");
+            new_Contraints_no_repeat->rightSide[cont_constraints] = new_Contraints->rightSide[i];
+            new_Contraints_no_repeat->typeConstraints[cont_constraints] = new_Contraints->typeConstraints[i];
+            cont_constraints++;
+            new_Contraints_no_repeat->ElementsConstraints[cont_constraints] = cont;
+
+        }
+    }
+//    for(i=0;i<new_Contraints_no_repeat->numberConstrains;i++){
+//        show_contraints(new_Contraints_no_repeat,i);
+//    }
+//    getchar();
+    //free(xTemp);
+    free(isRepeat);
+    free(new_Contraints);
     free(actived);
-    return new_Contraints;
+    return new_Contraints_no_repeat;
 }
 
 
@@ -637,8 +729,10 @@ Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread, int nConstra
 //             printf("\n");
             for(w = h_cover->ElementsConstraints[i]; w<h_cover->ElementsConstraints[i+1]; w++)
             {
-                for(ini=0;ini<id3-1;ini++){
-                    if((h_cover->Coefficients[w]  > S_barra[ini])&&(h_cover->Coefficients[w] <=S_barra[ini+1])){
+                for(ini=0; ini<id3-1; ini++)
+                {
+                    if((h_cover->Coefficients[w]  > S_barra[ini])&&(h_cover->Coefficients[w] <=S_barra[ini+1]))
+                    {
                         h_cover->Coefficients[w] = ini;
                         break;
                     }
@@ -723,7 +817,7 @@ Cut_gpu *runCPU_Cut_Cover(Cut_gpu *h_cut, int qnt_Cover_per_Thread, int nConstra
 Cut_gpu* second_phase_runCPU(Cut_gpu *h_cut, int numberMaxConst, int nRuns, int maxDenominator, int precision, int szR, double timeLeft)
 {
 
-    printf("FASE 2 in CPU\n"); fflush(stdout);
+    //printf("FASE 2 in CPU\n"); fflush(stdout);
     int *consR1;
     int *consNR1;
     int *nElemR1;
@@ -855,7 +949,7 @@ Cut_gpu* second_phase_runCPU(Cut_gpu *h_cut, int numberMaxConst, int nRuns, int 
     }
     if(cont>0)
     {
-          printf("Number of Cuts in the second phase in CPU:%d\n",cont);
+        printf("Number of Cuts in the second phase in CPU:%d\n",cont);
         //out_cut_gpu = createCutsOfPhaseTwo(h_cut,cut_aux,h_solution_r2,numberMaxConst,cont,precision,nRuns);
         int nT = nRuns;
         int nB = 1;

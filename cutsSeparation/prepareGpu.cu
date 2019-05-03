@@ -292,6 +292,7 @@ Cut_gpu* second_phase_runGPU(Cut_gpu *h_cut, int numberMaxConst, int nRuns, int 
         int n_r = 0, n_nr = 0, i,j;
         for(i=0; i<h_cut->numberConstrains; i++)
         {
+//            show_contraints(h_cut, i);
             if((h_cut->typeConstraints[i]==RES_RR)||(h_cut->typeConstraints[i]==LPC_CGGPU))
             {
                 n_r++;
@@ -301,7 +302,7 @@ Cut_gpu* second_phase_runGPU(Cut_gpu *h_cut, int numberMaxConst, int nRuns, int 
                 n_nr++;
             }
         }
-
+       //getchar();
         _time = ( (double) timeLeft - (omp_get_wtime()-startT) );
         if(_time<1){
             return h_cut;

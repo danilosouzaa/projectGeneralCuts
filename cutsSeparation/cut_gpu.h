@@ -98,7 +98,7 @@ Cut_gpu *CreateGroupForVectorNumberConstraints(Cut_gpu *h_cut, int *vectorConstr
 
 //Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp);
 
-Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp);
+Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp, char *nameInst);
 
 void setParameters_ccg(parameters_ccg *parCCG, int mode);
 
@@ -111,6 +111,11 @@ Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector, i
 Cut_gpu *returnVariablesOriginals(Cut_gpu *h_cut, int *convertVector, int precision, int nVariablesInitial);
 
 int insertConstraintsLP(LinearProgramPtr lp, Cut_gpu *h_cut, int nConstrainsInitial, int *counterCuts);
+
+int *vectorNonRepeteadNonDominated(Cut_gpu *h_cut, int nConstraintsInitial);
+
+int verifyRepeatCuts(Cut_gpu *h_cut, int cutOriginal, int cutCreate);
+
 
 EXTERN_C_END
 

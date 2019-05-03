@@ -74,9 +74,18 @@ int* sortPerViolation(int *vViolation, int nConstraints)
     return pos;
 }
 
+//solutionGpu *upLoadSol(char *NameFileSol, char *NameFileLP){
+//    LinearProgramPtr lp_new = lp_create();
+//    lp_read(lp,NameFileLP);
+//
+//
+//
+//}
+
+
 int main(int argc, const char *argv[])
 {
-    if(argc<7)
+    if(argc<8)
     {
         printf("Number of parameters invalided\n");
         return 0;
@@ -84,36 +93,42 @@ int main(int argc, const char *argv[])
     char name[255] = "../inst/";
     int precision = atoi(argv[2]);
     int maxConstraints = atoi(argv[3]);
-    int sizeGroup = atoi(argv[4]);
-    int maxDenomitor =atoi(argv[5]);
-    double timeMax = atof(argv[6]);
+    int sizeNRphase2 = atoi(argv[4]);
+    int sizeNR = atoi(argv[5]);
+    int maxDenomitor =atoi(argv[6]);
+    double timeMax = atof(argv[7]);
     int i,aux = 0;
     int counterCuts=0;
+    char nameInst[255]="";
+    strcat(nameInst,argv[1]);
     strcat(name,argv[1]);
     LinearProgram *lp = lp_create();
     lp_read(lp,name);
-    Cut_gpu *h_cut = fillStructPerLP(precision, lp);
-    lp_write_lp(lp,"danilo.lp");
-    int cutIni = h_cut->numberConstrains;
+    lp_set_max_seconds(lp,60);
+    Cut_gpu *h_cut = fillStructPerLP(precision, lp,nameInst);
+
+    //lp_write_lp(lp,"danilo.lp");
+
     time_t timeInitial = clock();
     time_t timeFinal;
     double timeCurrent, obj_Best;
     //lp_optimize_as_continuous(lp);
 
     obj_Best = lp_obj_value(lp);
+
     printf("Initial obj: %f\n", obj_Best);
     int qnt = 0;
     Cut_gpu *h_cut_new;
     int counterCutsNew = 0;
     int cg = 1;//0;//1;
     int nThreads = 0, nBlocks = 0, nRuns = 50;
-
+    int round = 1;
     do
     {
 
         //printf("XXXXXXXXXX\n");
         h_cut_new = structCopyCutGpu(h_cut);
-//        h_cut_new = h_cut;//onlyVariablesActive(h_cut);
+       // h_cut_new = onlyVariablesActive(h_cut, lp);
 //        memcpy(*h_cut_new,*h_cut, size_cut);
 //        show_contraints(h_cut,szGroup1);
 //        show_contraints(h_cut_new,szGroup1);
@@ -127,18 +142,22 @@ int main(int argc, const char *argv[])
 //
 //        printf("\n%d %d", h_cut->numberConstrains,h_cut_new->numberConstrains);
 //        getchar();
+
         int numberVariablesInitial = h_cut_new->numberVariables;
-        int cutIni2 = h_cut_new->numberConstrains;
+        int cutIni = h_cut_new->numberConstrains;
+        int *convertVariables = (int*)malloc(sizeof(int)*h_cut_new->cont);
+        //printf("Number Variables antes: %d\n", h_cut->numberVariables);
+        h_cut_new = removeNegativeCoefficientsAndSort(h_cut_new,convertVariables,precision);
 //        lp_write_sol(lp,"saida.sol");
         if(cg == 1 )
         {
             int nGroupPhaseOne = h_cut_new->numberConstrains/2;
             int nRepeat = 1;
             double a_aux = 0;
-//            for(i = 0; i<nGroupPhaseOne; i++)
-//            {
-//                h_cut_new->typeConstraints[i] = RES_RR;
-//            }
+            for(i = 0; i<sizeNR; i++)
+            {
+                h_cut_new->typeConstraints[i] = RES_RR;
+            }
             returnDimension(&nBlocks, &nThreads, nRuns, h_cut_new->numberConstrains );
             aux = h_cut_new->numberConstrains;
             h_cut_new = initial_runCPU(h_cut_new,1,precision,1000);
@@ -167,12 +186,12 @@ int main(int argc, const char *argv[])
                 }
                 nRuns_temp = nThreads*nBlocks;
 
-                h_cut_new = second_phase_runCPU(h_cut_new,maxConstraints,nRuns_temp,maxDenomitor,precision,sizeGroup,timeMax-timeCurrent);
+                h_cut_new = second_phase_runCPU(h_cut_new,maxConstraints,nRuns_temp,maxDenomitor,precision,sizeNRphase2,timeMax-timeCurrent);
                 //h_cut_new = second_phase_runGPU(h_cut_new,maxConstraints,nRuns_temp,maxDenomitor,precision,nBlocks,nThreads,&pos_R1,sizeGroup,timeMax-timeCurrent);
 
             }
             aux = h_cut_new->numberConstrains - aux;
-            printf(" Fase 2: %d\n",aux);
+            //printf(" Fase 2: %d\n",aux);
             counterCutsNew += aux;
             //second_phase_runGPU(h_cut,,10,10,200,precision,1,20,)
 
@@ -180,12 +199,8 @@ int main(int argc, const char *argv[])
         }
 
 
+        int cutIni2 = h_cut_new->numberConstrains;
 
-        int *convertVariables = (int*)malloc(sizeof(int)*h_cut_new->cont);
-//        show_contraints(h_cut_new,116);
-//        getchar();
-        //printf("Number Variables antes: %d\n", h_cut->numberVariables);
-        h_cut_new = removeNegativeCoefficientsAndSort(h_cut_new,convertVariables,precision);
 //        show_contraints(h_cut_new,116);
 //        getchar();
         //printf("Number Variables depois: %d\n", h_cut->numberVariables);
@@ -205,21 +220,24 @@ int main(int argc, const char *argv[])
 //        show_contraints(h_cut_new,cutIni2+87);
 //        getchar();
 //        printf("numero inicial: %d, depois : %d\n",cutIni2, h_cut_new->numberConstrains);
-        if(h_cut_new->numberConstrains>cutIni2)
+        if(h_cut_new->numberConstrains>cutIni)
         {
-            insertConstraintsLP(lp,h_cut_new,cutIni2,&counterCuts);
+            insertConstraintsLP(lp,h_cut_new,cutIni,&counterCuts);
 
             lp_set_max_seconds( lp, 60 );
             lp_set_print_messages(lp,0);
+
             aux = lp_optimize_as_continuous( lp );
 //    aux = lp_optimize( lp );
             double *xTemp = lp_x(lp);
             for(i=0; i<h_cut->numberVariables; i++)
             {
-
                 h_cut->xAsterisc[i] = xTemp[i]*precision;
             }
-
+            //printf("Teste\n");
+            saveSoluctionFrac(xTemp, h_cut->numberVariables, nameInst, lp, round);
+            //getchar();
+            round++;
             double newObj = lp_obj_value(lp);
             //free(xTemp);
             timeFinal = clock();
@@ -248,14 +266,15 @@ int main(int argc, const char *argv[])
         free(convertVariables);
         timeFinal = clock();
         timeCurrent = ((double) (timeFinal - timeInitial)) / CLOCKS_PER_SEC;
-        printf("time: %f\n",timeCurrent);
+        //printf("time: %f\n",timeCurrent);
         free(h_cut_new);
         lp_write_lp(lp,"saida.lp");
+        //getchar();
 //        getchar();
 
     }
     while(timeCurrent < timeMax);
-
+    printf("objective final: %f\n",obj_Best);
 //    lp_set_max_seconds(lp,60);
 //    lp_optimize(lp);
 //    lp_free(&lp);

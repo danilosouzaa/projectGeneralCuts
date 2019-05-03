@@ -1086,13 +1086,14 @@ void show_contraints(Cut_gpu *h_cut, int constraint){
      for(j = h_cut->ElementsConstraints[constraint]; j< h_cut->ElementsConstraints[constraint + 1]; j++)
      {
         if( aux == 0 ){
-            if(h_cut->xAsterisc[ h_cut->Elements[j] ] != 0){
+            //if(h_cut->xAsterisc[ h_cut->Elements[j] ] != 0){
             printf("%d X_%d = %d", h_cut->Coefficients[j], h_cut->Elements[j],h_cut->xAsterisc[ h_cut->Elements[j] ]);
-            aux++;}
+            aux++;
+            //}
         }else{
-            if(h_cut->xAsterisc[ h_cut->Elements[j] ] != 0){
+            //if(h_cut->xAsterisc[ h_cut->Elements[j] ] != 0){
             printf("+ %d X_%d = %d", h_cut->Coefficients[j], h_cut->Elements[j], h_cut->xAsterisc[ h_cut->Elements[j] ]);
-            }
+            //}
 
         }
 
@@ -1121,7 +1122,7 @@ void show_cuts_used_zero_half(Cut_gpu *h_cut, int *h_solution, int sizeGroup, in
     for(i=0;i< h_cut->numberVariables;i++){
         printf("x_%d = %d\n", i , h_cut->xAsterisc[i]);
     }
-    getchar();
+//    getchar();
 }
 
 

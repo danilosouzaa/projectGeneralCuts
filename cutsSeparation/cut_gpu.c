@@ -141,9 +141,9 @@ int returnIndVector(TNames *v,char *nome, int sz)
 }
 */
 
-Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
+Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp, char *nameInst)
 {
-    lp_optimize_as_continuous(lp);
+
     int numberVariables, numberConstraints, numberNonZero;
     int i, j, k, numberConstraintsLeft = 0, numberNonZeroNew = 0;
     numberVariables = lp_cols(lp);
@@ -183,9 +183,11 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
 //    getchar();
     double rhs;
     double *xTemp;
+    lp_optimize_as_continuous(lp);
     //printf("testes: %d %d %d", numberConstrains, numberVariables, numberNonZero);
     //printf("double Size: %d\n ", sizeof(double));
     xTemp = lp_x(lp);
+    saveSoluctionFrac(xTemp, numberVariables,nameInst,lp,0);
     //int *idx_Original = lp_original_colummns(lp);
     //printf("xTemp Size: %d\n",sizeof(xTemp));
     //printf("NumberVariables: %d\n",numberVariables);
@@ -208,6 +210,7 @@ Cut_gpu* fillStructPerLP(int precision, LinearProgram *lp)
     }
     //getchar();
     // lp_row(lp,0,idx,coef);
+
     int aux = 0;
     h_cut->ElementsConstraints[0] = 0;
     int contador = 0;
@@ -334,14 +337,88 @@ void SortByCoefficients(Cut_gpu *h_cut)
     }
 }
 
+
+int verifyRepeatCuts(Cut_gpu *h_cut, int cutOriginal, int cutCreate){
+    int i,j, aux = 1;
+    int szOri = h_cut->ElementsConstraints[cutOriginal+1] - h_cut->ElementsConstraints[cutOriginal];
+    int szCre = h_cut->ElementsConstraints[cutCreate+1] - h_cut->ElementsConstraints[cutCreate];
+    if( (szOri != szCre)||(h_cut->rightSide[cutOriginal]!=h_cut->rightSide[cutCreate]) ){
+        return 0;
+    }
+    for(i=h_cut->ElementsConstraints[cutOriginal];i<h_cut->ElementsConstraints[cutOriginal+1];i++){
+        aux = 0;
+        for(j=h_cut->ElementsConstraints[cutCreate];j<h_cut->ElementsConstraints[cutCreate+1];j++){
+            if((h_cut->Coefficients[i] == h_cut->Coefficients[j])&&(h_cut->Elements[i]==h_cut->Elements[j])){
+                aux = 1;
+             //   getchar();
+            }
+        }
+        if(aux == 0){
+            return 0;
+        }
+    }
+    return 1;
+
+}
+
+
+int *vectorNonRepeteadNonDominated(Cut_gpu *h_cut, int nConstraintsInitial){
+    int i, j, k = 0, qntRepeat = 0;
+    int *isRepeat = (int*)malloc(sizeof(int)*h_cut->numberConstrains);
+    for(i=0;i<nConstraintsInitial;i++){
+        isRepeat[i] = 0;
+    }
+    int *v_aux = (int*)malloc(sizeof(int)*h_cut->numberVariables);
+    for (i=nConstraintsInitial;i<h_cut->numberConstrains;i++){
+            //isRepeat[i] = 1;
+            k=0;
+            for(j = h_cut->ElementsConstraints[i]; j< h_cut->ElementsConstraints[i+1];j++){
+                v_aux[k] = h_cut->Coefficients[j];
+                k++;
+            }
+            v_aux[k] = h_cut->rightSide[i];
+            int mdc = CutP_maxDivisorCommonVector(v_aux, k);
+            for(j = h_cut->ElementsConstraints[i]; j< h_cut->ElementsConstraints[i+1];j++){
+                h_cut->Coefficients[j] = h_cut->Coefficients[j]/mdc;
+            }
+            h_cut->rightSide[i] =  h_cut->rightSide[i]/mdc;
+            for(j = 0;j<nConstraintsInitial;j++){
+              isRepeat[i] = verifyRepeatCuts(h_cut,j,i);
+              qntRepeat += isRepeat[i];
+              if(isRepeat[i]==1){
+               break;
+              }
+//                    printf("equals:\n");
+//                    show_contraints(h_cut,j);
+//                    show_contraints(h_cut,i);
+//                }
+            }
+
+            //free(v_aux);
+    }
+    printf("Number Repeated Cuts: %d\n", qntRepeat);
+    free(v_aux);
+    return isRepeat;
+    //free(isRepeat);
+
+
+
+
+}
+
+
 int insertConstraintsLP(LinearProgramPtr lp, Cut_gpu *h_cut, int nConstrainsInitial, int *counterCuts)
 {
     int nRows, i, j, w, k = 0 ;
     int *idx;
     double *Coef;
     char name[255];
+    int *cutsNonInserted = vectorNonRepeteadNonDominated(h_cut,nConstrainsInitial);
     for(i = nConstrainsInitial; i < h_cut->numberConstrains; i++)
     {
+        if(cutsNonInserted[i]==1){
+            continue;
+        }
         int sz = h_cut->ElementsConstraints[i+1] - h_cut->ElementsConstraints[i];
         idx = (int*)malloc(sizeof(int)*sz);
         Coef = (double*)malloc(sizeof(double)*sz);
@@ -371,6 +448,8 @@ int insertConstraintsLP(LinearProgramPtr lp, Cut_gpu *h_cut, int nConstrainsInit
         free(idx);
         free(Coef);
     }
+
+    free(cutsNonInserted);
 }
 
 Cut_gpu *removeNegativeCoefficientsAndSort(Cut_gpu *h_cut, int *convertVector, int precision)
